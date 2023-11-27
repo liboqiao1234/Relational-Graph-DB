@@ -10,6 +10,7 @@ struct Tuple{
     int num2; // number of pointer set
     vector<int> attribute;
     vector<set<Tuple*>> pointerSet;
+
     Tuple (int num1 = 0, int num2 = 0) {
         attribute.resize(num1);
         for (int i = 0; i < num1; i++) {
@@ -22,11 +23,13 @@ struct Tuple{
     }
 };
 
-struct RG{
+class RG{
+public:
     int num1; // number of attribute
     int num2; // number of pointer set
     int num3; // number of tuple
     vector<Tuple> table;
+    map <string, int> attr; // name -> line no.
     RG (int num1 = 0, int num2 = 0, int num3 = 0) {
         table.resize(num3);
         for (int i = 0; i < num3; i++) {
@@ -226,7 +229,7 @@ namespace Query{
     void EnumerateCsgRec(int S1, int X) {
         int N = Neighbor(S1, X);
         for(int s = N; s ; s = (s - 1) & N) {
-            if(plan[S1 | N] != make_pair(0, 0))
+            if(Plan[S1 | N] != make_pair(0, 0))
                 EmitCsg(S1 | s);
         }
         
@@ -257,6 +260,35 @@ namespace Query{
     }
 
 };
+
+namespace Exert{
+    RG * Projection(RG R, vector<string> attrs, vector<string> pointers) {
+        int num1 = attrs.size(); // num1: attr
+        int num2 = pointers.size(); // num2: pointer
+        int num3 = R.num3; // tuple num
+        RG* res = new RG(num1, num2, num3);
+        vector <int> selected_attr, selected_poi;
+        for (int i = 0; i < num1; i++) {
+            // Pointer remains unsolved. How to define RG.attr ?
+            selected_attr.push_back(R.attr[attrs[i]]); // check the projection attrs' number
+        }
+        for (int i=0; i<num2;i++) {
+            selected_poi.push_back(R.attr[pointers[i]]); // pointers number
+        }
+
+        for (int i = 0; i < num3; i++) {
+            auto tmpTuple = new Tuple(num1, num2);
+            for (int j = 0; j < num1; j++) {
+                (*tmpTuple).attribute.push_back(R.table[i].attribute[selected_attr[j]]);
+            }
+            for (int j = 0; j < num2; j++) {
+                (*tmpTuple).pointerSet.push_back(R.table[i].pointerSet[selected_poi[j]]);
+            }
+            res->table.push_back(*tmpTuple);
+        }
+    }
+};
+
 void Calc() {
 
 }
