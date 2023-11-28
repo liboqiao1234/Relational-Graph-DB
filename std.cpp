@@ -5,7 +5,8 @@ using namespace std;
 int n; // number of table
 int m; // number of graph
 
-struct Tuple{
+class Tuple{
+public:
     int num1; // number of attribute
     int num2; // number of pointer set
     vector<int> attribute;
@@ -20,6 +21,8 @@ struct Tuple{
         for (int i = 0; i < num2; i++) {
             pointerSet[i].clear();
         }
+        this->num1 = num1;
+        this->num2 = num2;
     }
 };
 
@@ -29,12 +32,20 @@ public:
     int num2; // number of pointer set
     int num3; // number of tuple
     vector<Tuple> table;
+    vector<string>zero; // first row: attr name and pointer name;
     map <string, int> attr; // name -> line no.
+    map <string, int> poi;
     RG (int num1 = 0, int num2 = 0, int num3 = 0) {
         table.resize(num3);
+        attr.clear();
+        poi.clear();
+        zero.clear();
         for (int i = 0; i < num3; i++) {
             table[i] = Tuple(num1, num2);
         }
+        this->num1 = num1;
+        this->num2 = num2;
+        this->num3 = num3;
     }
 };
 
@@ -53,9 +64,15 @@ namespace Init{
             int num1, num3;
             cin >> num1 >> num3;
             RG now = RG(num1, 0, num3);
-            for (int i = 0; i < num3; i++) {
-                for (int j = 0; j < num1; j++) {
-                    cin >> now.table[i].attribute[j];
+            string attr;
+            for (int k = 0; k < num1; k++) {
+                cin >> attr;
+                now.zero.push_back(attr);
+                now.attr[attr] = k;
+            }
+            for (int j = 0; j < num3; j++) {
+                for (int k = 0; k < num1; k++) {
+                    cin >> now.table[j].attribute[k];
                 }
             }
             Rgs.push_back(now);
@@ -262,7 +279,7 @@ namespace Query{
 };
 
 namespace Exert{
-    RG * Projection(RG R, vector<string> attrs, vector<string> pointers) {
+    RG Projection(RG R, vector<string> attrs, vector<string> pointers) {
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
         int num3 = R.num3; // tuple num
@@ -270,22 +287,27 @@ namespace Exert{
         vector <int> selected_attr, selected_poi;
         for (int i = 0; i < num1; i++) {
             // Pointer remains unsolved. How to define RG.attr ?
+            res->attr[attrs[i]] = i;
+            res->zero.push_back(attrs[i]);
             selected_attr.push_back(R.attr[attrs[i]]); // check the projection attrs' number
         }
         for (int i=0; i<num2;i++) {
+            res->poi[pointers[i]] = i;
+            res->zero.push_back(pointers[i]);
             selected_poi.push_back(R.attr[pointers[i]]); // pointers number
         }
 
         for (int i = 0; i < num3; i++) {
             auto tmpTuple = new Tuple(num1, num2);
             for (int j = 0; j < num1; j++) {
-                (*tmpTuple).attribute.push_back(R.table[i].attribute[selected_attr[j]]);
+                (*tmpTuple).attribute[j]=R.table[i].attribute[selected_attr[j]];
             }
             for (int j = 0; j < num2; j++) {
-                (*tmpTuple).pointerSet.push_back(R.table[i].pointerSet[selected_poi[j]]);
+                (*tmpTuple).pointerSet[j]=R.table[i].pointerSet[selected_poi[j]];
             }
-            res->table.push_back(*tmpTuple);
+            res->table[i]=*tmpTuple;
         }
+        return *res;
     }
 };
 
@@ -297,8 +319,36 @@ void Output() {
 
 }
 
+namespace Debug {
+    void outputRG(const RG &a) {
+        int num1 = a.num1; // attr
+        int num2 = a.num2; // pointer
+        int num3 = a.num3; // tuple
+        for (auto i:a.zero) {
+            cout << i << ' ';
+        }
+        cout << endl;
+        for (int i=0;i<num3;i++) {
+            for(int j=0;j<num1;j++) {
+                cout << a.table[i].attribute[j] << " ";
+            }
+            for(int j=0;j<num2;j++) {
+                cout << "pointer" << " "; // a.table[i].pointerSet[j]
+            }
+            cout << endl;
+        }
+    }
+};
+
 int main() {
     Init :: Init();
+    vector<string>qqqq;
+    qqqq.push_back("name");
+    qqqq.push_back("id");
+
+    vector<string>aaaa;
+    RG test = Exert ::Projection(Rgs[0],qqqq,aaaa);
+    Debug::outputRG(test);
     Query :: Query();
     Calc();
     Output();
