@@ -279,7 +279,7 @@ namespace Query{
 };
 
 namespace Exert{
-    RG Projection(RG R, vector<string> attrs, vector<string> pointers) {
+    RG Projection(RG &R, vector<string> attrs, vector<string> pointers) {
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
         int num3 = R.num3; // tuple num
@@ -307,6 +307,19 @@ namespace Exert{
             }
             res->table[i]=*tmpTuple;
         }
+        return *res;
+    }
+    RG Selection(RG &R, vector<string>conditions) {
+        // unfinished
+        RG* res = new RG();
+        return *res;
+    }
+    RG RGJoin(RG &a, RG &b, vector<string>conditions) {
+        RG *res = new RG();
+        return *res;
+    }
+    RG EdgeJoin(RG &a, RG &b, vector<string>conditions) {
+        RG *res = new RG();
         return *res;
     }
 };
