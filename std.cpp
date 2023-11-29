@@ -280,22 +280,25 @@ namespace Query{
 };
 
 namespace Exert{
-    RG Projection(RG &R, vector<string> attrs, vector<string> pointers) {
+    RG Projection(RG &R, vector<int> attrs, vector<int> pointers) {
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
         int num3 = R.num3; // tuple num
         RG* res = new RG(num1, num2, num3);
         vector <int> selected_attr, selected_poi;
+        string attr_name;
         for (int i = 0; i < num1; i++) {
             // Pointer remains unsolved. How to define RG.attr ?
-            res->attr[attrs[i]] = i;
-            res->zero.push_back(attrs[i]);
-            selected_attr.push_back(R.attr[attrs[i]]); // check the projection attrs' number
+            attr_name = R.zero[attrs[i]];
+            res->attr[attr_name] = i;
+            res->zero.push_back(attr_name);
+            selected_attr.push_back(attrs[i]); // check the projection attrs' number
         }
         for (int i=0; i<num2;i++) {
-            res->poi[pointers[i]] = i;
-            res->zero.push_back(pointers[i]);
-            selected_poi.push_back(R.attr[pointers[i]]); // pointers number
+            attr_name = R.zero[R.num1 + i]; // means the pointers set
+            res->poi[attr_name] = i;
+            res->zero.push_back(attr_name);
+            selected_poi.push_back(pointers[i]); // pointers number
         }
 
         for (int i = 0; i < num3; i++) {
@@ -356,11 +359,20 @@ namespace Debug {
 
 int main() {
     Init :: Init();
-    vector<string>qqqq;
-    qqqq.push_back("name");
-    qqqq.push_back("id");
-
-    vector<string>aaaa;
+    vector<int>qqqq;
+    qqqq.push_back(1);// means "name"
+    qqqq.push_back(0);// means "id"
+    /*
+     * test examples:
+      1
+      2 3
+      id name
+      1 123
+      2 234
+      3 345
+      0
+     */
+    vector<int>aaaa;
     RG test = Exert ::Projection(Rgs[0],qqqq,aaaa);
     Debug::outputRG(test);
     Query :: Query();
