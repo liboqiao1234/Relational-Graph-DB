@@ -126,7 +126,7 @@ namespace Query{
     int tot;
 
     void BuildQueryGraph() {
-        tot = -1, RgtoId.clear(), IdtoRg.clear(), pp.clear();
+        tot = -1, RgtoId.clear(), IdtoRg.clear();
         int type;
         cin >> type;
         if(type == 0) {
@@ -225,12 +225,13 @@ namespace Query{
     void EnumerateCmpRec(int S1, int S2, int X) {
         int N = Neighbor(S2, X);
         for(int s = N; s ; s = (s - 1) & N) {
-            if(plan[S2 | s] != make_pair(0, 0))
+            if(Plan[S2 | s] != make_pair(0, 0))
                 EmitCsgCmp(S1, S2 | s);
         }
         X |= N;
-        for(int s = N; s ; s = (s - 1) & N) 
+        for(int s = N; s ; s = (s - 1) & N) {
             EnumerateCmpRec(S1, S2 | s, X);
+        }
     }
 
     void EmitCsg(int S1) {
@@ -246,12 +247,12 @@ namespace Query{
     void EnumerateCsgRec(int S1, int X) {
         int N = Neighbor(S1, X);
         for(int s = N; s ; s = (s - 1) & N) {
-            if(Plan[S1 | N] != make_pair(0, 0))
+            if(Plan[S1 | s] != make_pair(0, 0))
                 EmitCsg(S1 | s);
         }
         
         for(int s = N; s ; s = (s - 1) & N) 
-            EmitCsg(S1 | s, X | s);
+            EmitCsg(S1 | s);
     }
 
     void GetPlan() {
