@@ -63,6 +63,27 @@ struct Opt{
 
 vector<RG> Rgs;
 
+class Condition{
+    int attr; // line no.
+    int cmp; // compare type
+    char* value; // the constant
+};
+
+long long toNum(char *value) {
+    long long res = 0;
+    int i = 0;
+    int flag = 1;
+    while (value[i]==' ') ++i;
+    if (value[i] == '-') {
+        flag = -1;
+        ++i;
+    }
+    while (value[i]!='\0') {
+        res = (res << 1) + (res << 3) + (value[i] - '0');
+    }
+    return res * flag;
+}
+
 namespace Init{ 
     void InitTable() {
         cin >> n;
@@ -101,16 +122,16 @@ namespace Init{
             for(int j = 0; j < N; j++) {
                 int id;
                 cin >> id;
-                V.table[j].attribute[0] = id;
+                V.table[j].attribute[0].number = id;
             }
             for(int j = 0; j < M; j++) {
                 int x, y, id;
                 cin >> x >> y >> id;
-                E_in.table[j].attribute[0] = id;
+                E_in.table[j].attribute[0].number = id;
                 E_in.table[j].pointerSet[0].insert(&V.table[x]);
                 V.table[y].pointerSet[1].insert(&E_in.table[j]);
 
-                E_out.table[j].attribute[0] = id;
+                E_out.table[j].attribute[0].number = id;
                 E_out.table[j].pointerSet[0].insert(&V.table[y]);
                 V.table[x].pointerSet[0].insert(&E_out.table[j]);
             }
@@ -326,16 +347,16 @@ namespace Exert{
         }
         return *res;
     }
-    RG Selection(RG &R, vector<string>conditions) {
+    RG Selection(RG &R, vector<Condition>conditions) {
         // unfinished
         RG* res = new RG();
         return *res;
     }
-    RG RGJoin(RG &a, RG &b, vector<string>conditions) {
+    RG RGJoin(RG &a, RG &b, vector<Condition>conditions) {
         RG *res = new RG();
         return *res;
     }
-    RG EdgeJoin(RG &a, RG &b, vector<string>conditions) {
+    RG EdgeJoin(RG &a, RG &b, vector<Condition>conditions) {
         RG *res = new RG();
         return *res;
     }
@@ -350,7 +371,7 @@ void Output() {
 }
 
 namespace Debug {
-    void outputRG(const RG &a) {
+    void outputRG(RG &a) {
         int num1 = a.num1; // attr
         int num2 = a.num2; // pointer
         int num3 = a.num3; // tuple
@@ -360,7 +381,14 @@ namespace Debug {
         cout << endl;
         for (int i=0;i<num3;i++) {
             for(int j=0;j<num1;j++) {
-                cout << a.table[i].attribute[j] << " ";
+                if (a.attr_type[j] == 0){
+                    cout << a.table[i].attribute[j].number << " ";
+                } else if(a.attr_type[j] == 1) {
+                    cout << a.table[i].attribute[j].string << " ";
+                } else {
+                    cout << "Unknown attribute type!" ;
+                }
+
             }
             for(int j=0;j<num2;j++) {
                 cout << "pointer" << " "; // a.table[i].pointerSet[j]
