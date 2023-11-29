@@ -5,17 +5,22 @@ using namespace std;
 int n; // number of table
 int m; // number of graph
 
+union Attr{
+    char* string;
+    long long number;
+};
+
 class Tuple{
 public:
     int num1; // number of attribute
     int num2; // number of pointer set
-    vector<int> attribute;
+    vector<Attr> attribute;
     vector<set<Tuple*>> pointerSet;
 
     Tuple (int num1 = 0, int num2 = 0) {
         attribute.resize(num1);
         for (int i = 0; i < num1; i++) {
-            attribute[i] = 0;
+            attribute[i].number = 0;
         }
         pointerSet.resize(num2);
         for (int i = 0; i < num2; i++) {
@@ -34,6 +39,7 @@ public:
     vector<Tuple> table;
     vector<string>zero; // first row: attr name and pointer name;
     map <string, int> attr; // name -> line no.
+    map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:string
     map <string, int> poi;
     RG (int num1 = 0, int num2 = 0, int num3 = 0) {
         table.resize(num3);
@@ -65,14 +71,21 @@ namespace Init{
             cin >> num1 >> num3;
             RG now = RG(num1, 0, num3);
             string attr;
+            int attr_type;
             for (int k = 0; k < num1; k++) {
-                cin >> attr;
+                cin >> attr >> attr_type;
                 now.zero.push_back(attr);
+                now.attr_type[k] = attr_type;
                 now.attr[attr] = k;
             }
             for (int j = 0; j < num3; j++) {
                 for (int k = 0; k < num1; k++) {
-                    cin >> now.table[j].attribute[k];
+                    if(now.attr_type[k] == 0) {
+                        cin >> now.table[j].attribute[k].number;
+                    } else {
+                        cin >> now.table[j].attribute[k].string;
+                        // use cin to deal with input for char* type may cause error!!!!!
+                    }
                 }
             }
             Rgs.push_back(now);
