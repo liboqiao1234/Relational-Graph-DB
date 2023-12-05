@@ -45,7 +45,7 @@ map <str, int> poi; // 指针列的  列名->列号（如果需要）
 #### （1）SelCondition
 
 ```C++
-string attrNo; // attr name
+string attr; // attr name
 int CMP; // compare type
 char* value; // the constant to be compared
 ```

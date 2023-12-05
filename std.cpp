@@ -44,7 +44,7 @@ public:
     map <string, int> attr; // name -> line no.
     map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:str
     map <string, int> poi;
-    RG (string name, int num1 = 0, int num2 = 0, int num3 = 0) {
+    RG (string name = "EmptyName", int num1 = 0, int num2 = 0, int num3 = 0) {
         table.resize(num3);
         attr.clear();
         poi.clear();
@@ -63,7 +63,7 @@ vector<RG> Rgs;
 
 class SelCondition{
 public:
-    string attrNo; // line no.
+    string attr; // line no.
     int cmp; // compare type
     char* value; // the constant
 };
@@ -359,7 +359,7 @@ namespace Exert{
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
         int num3 = R.num3; // tuple num
-        RG* res = new RG(num1, num2, num3);
+        RG* res = new RG("",num1, num2, num3); // Name!!!
         vector <int> selected_attr, selected_poi;
         string attr_name;
         for (int i = 0; i < num1; i++) {
@@ -388,9 +388,9 @@ namespace Exert{
         }
         return *res;
     }
-    bool CMP(const SelCondition &condition, const Tuple &a) { // whether the tuple fits the condition.
+    bool CMP(const SelCondition &condition, const Tuple &a, int lineNo) { // whether the tuple fits the condition.
         int cmpop = condition.cmp;
-        int lineNo = condition.attrNo;
+        //int lineNo = condition.attr;
         if (lineNo >= a.num1) {
             cout << "Select the pointerSet, not supported yet." << endl;
             return false;
@@ -430,16 +430,15 @@ namespace Exert{
         return false;
     }
 
-    bool CMP(const JoinCondition &condition, const Tuple &a, const Tuple &b) {
+    bool CMP(const JoinCondition &condition, const Tuple &a, const Tuple &b, int lineNo1, int lineNo2) {
         // unfinished
     }
     RG Selection(const RG &R, vector<SelCondition> &conditions) {
-        RG* res = new RG(R.num1,R.num2, 0);
+        RG* res = new RG("Name!", R.num1, R.num2, 0);// Name!!!!!
         res->zero = R.zero; // Bug ? when R destruct, what happen to res->zero? -- Seemingly alright.
         res->attr_type = R.attr_type;
         res->attr = R.attr;
         res->poi = R.poi;
-
         // Exert selection.
         int tot = R.num3;
         int flag = 1;
@@ -447,7 +446,8 @@ namespace Exert{
         for (int i = 0; i < tot; i++) {
             flag = 1;
             for (int j = 0; j < conditions.size(); j++) {
-                if(!CMP(conditions[j], R.table[i])) {
+                int lineNo = res->attr[conditions[j].attr];
+                if(!CMP(conditions[j], R.table[i], lineNo)) {
                     flag = 0;
                     break;
                 }
@@ -527,7 +527,7 @@ int main() {
 
     vector<SelCondition>SelectionCon;
     SelCondition a{};
-    a.attrNo = 1; // name
+    a.attr = 1; // name
     a.value = "Name1";
     a.cmp = 0;
     SelectionCon.push_back(a);
