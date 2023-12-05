@@ -5,6 +5,8 @@ using namespace std;
 int n; // number of table
 int m; // number of graph
 
+map<string, int> Table; // name -> id
+
 union Attr{
     char* str;
     long long number;
@@ -36,12 +38,13 @@ public:
     int num1; // number of attribute
     int num2; // number of pointer set
     int num3; // number of tuple
+    string name;
     vector<Tuple> table;
     vector<string>zero; // first row: attr name and pointer name;
     map <string, int> attr; // name -> line no.
     map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:str
     map <string, int> poi;
-    RG (int num1 = 0, int num2 = 0, int num3 = 0) {
+    RG (string name, int num1 = 0, int num2 = 0, int num3 = 0) {
         table.resize(num3);
         attr.clear();
         poi.clear();
@@ -49,31 +52,35 @@ public:
         for (int i = 0; i < num3; i++) {
             table[i] = Tuple(num1, num2);
         }
+        this->name = name;
         this->num1 = num1;
         this->num2 = num2;
         this->num3 = num3;
     }
 };
 
-
-struct Opt{
-    int type, a, b;
-    Opt(int type = 0, int a = 0, int b = 0) : type(type), a(a), b(b) {}
-};
-
 vector<RG> Rgs;
 
 class SelCondition{
 public:
-    int attrNo; // line no.
+    string attrNo; // line no.
     int cmp; // compare type
     char* value; // the constant
 };
 
 class JoinCondition{
 public:
-    int attr1, attr2;
+    string attr1, attr2;
+    int cmp;
 };
+
+class Step{
+public:
+    int S1, S2; // csg and cmp set
+    vector<JoinCondition> conditions; // join condition
+    vector<string> attr; // attr which should be contained
+};
+
 long long toNum(const char *value) {
     long long res = 0;
     int i = 0;
@@ -93,13 +100,16 @@ namespace Init{
     void InitTable() {
         cin >> n;
         for (int i = 0; i < n; i++) {
+            string name;
+            cin >> name;
             int num1, num3;
             cin >> num1 >> num3;
-            RG now = RG(num1, 0, num3);
+            RG now = RG(name, num1, 0, num3);
             string attr;
             int attr_type;
             for (int k = 0; k < num1; k++) {
                 cin >> attr >> attr_type; // attr_type  0 longlong 1 str
+                attr = name + "." + attr;
                 now.zero.push_back(attr);
                 now.attr_type[k] = attr_type;
                 now.attr[attr] = k;
@@ -116,24 +126,29 @@ namespace Init{
                     }
                 }
             }
-            Rgs.push_back(now);
+            Table[now.name] = Rgs.size(), Rgs.push_back(now);
         }
     }
 
     void InitGraph() {
         cin >> m;
         for(int i = 0; i < m; i++) {
+            string name;
+            cin >> name;
             int N, M; // number of nodes and edges
             cin >> N >> M;
-            RG V(1, 2, N), E_in(1, 1, M), E_out(1, 1, M);
+            RG V(name + "V", 1, 2, N), E_in(name + "E_in", 1, 1, M), E_out(name + "E_out", 1, 1, M);
+            V.zero.push_back(V.name + ".id"), V.attr[V.name + ".id"] = 0, V.attr_type[0] = 0;
             for(int j = 0; j < N; j++) {
-                int id;
+                long long id;
                 cin >> id;
                 V.table[j].attribute[0].number = id;
             }
+            E_in.zero.push_back(E_in.name + ".id"), E_in.attr[E_in.name + ".id"] = 0, E_in.attr_type[0] = 0;
+            E_out.zero.push_back(E_out.name + ".id"), E_out.attr[E_out.name + ".id"] = 0, E_out.attr_type[0] = 0;
             for(int j = 0; j < M; j++) {
-                int x, y, id;
-                cin >> x >> y >> id;
+                int x, y; long long id;
+                cin >> x >> y >> id; 
                 E_in.table[j].attribute[0].number = id;
                 E_in.table[j].pointerSet[0].insert(&V.table[x]);
                 V.table[y].pointerSet[1].insert(&E_in.table[j]);
@@ -142,9 +157,9 @@ namespace Init{
                 E_out.table[j].pointerSet[0].insert(&V.table[y]);
                 V.table[x].pointerSet[0].insert(&E_out.table[j]);
             }
-            Rgs.push_back(V);
-            Rgs.push_back(E_in);
-            Rgs.push_back(E_out);
+            Table[V.name] = Rgs.size(), Rgs.push_back(V);
+            Table[E_in.name] = Rgs.size(), Rgs.push_back(E_in);
+            Table[E_out.name] = Rgs.size(), Rgs.push_back(E_out);
         }
     }
 
@@ -157,8 +172,8 @@ namespace Query{
 
     struct Edge{
         int to;
-        Opt opt;
-        Edge(int to = 0, Opt opt = Opt()) : to(to), opt(opt) {}
+        JoinCondition condition;
+        Edge(int to = 0, JoinCondition condition) : to(to), condition(condition) {}
     };
 
     vector<vector<Edge> > G;
@@ -174,8 +189,11 @@ namespace Query{
             int N;
             cin >> N;
             for(int i = 1; i <= N; i++) {
-                int x, y, a, b;
-                cin >> x >> y >> a >> b;
+                string attr1, attr2;
+                int x, y, a, b, cmp;
+                cin >> attr1 >> attr2 >> cmp;
+                x = Table[attr1.substr(0, attr1.find_first_of('.'))];
+                y = Table[attr1.substr(0, attr2.find_first_of('.'))];
                 if(!RgtoId.count(x)) {
                     RgtoId[x] = ++tot;
                     IdtoRg[tot] = x;
@@ -187,8 +205,11 @@ namespace Query{
                     G.push_back({}); 
                 }
                 x = RgtoId[x], y = RgtoId[y];
-                G[x].push_back(Edge(y, Opt(1, a, b)));
-                G[y].push_back(Edge(x, Opt(1, b, a)));
+                JoinCondition condition;
+                condition.attr1 = attr1;
+                condition.attr2 = attr2;
+                condition.cmp = cmp;
+                G[x].push_back(Edge(y, condition));
             }
         } else {
             int graphN, graphM, graphId; 
@@ -201,18 +222,25 @@ namespace Query{
                 int x, y;
                 cin >> x >> y;
                 IdtoRg[++tot] = n + 3 * graphId + 1, G.push_back({});
-                G[y].push_back(Edge(tot, Opt(2, -2, 0)));
-                G[tot].push_back(Edge(tot, Opt(2, -1, 0)));
+                JoinCondition condition1, condition2;
+                condition1.cmp = condition2 .cmp = 4;
+                condition1.attr1 = -1, condition2.attr2 = -2;
+                condition1.attr2 = condition2.attr2 = 0;
+                G[y].push_back(Edge(tot, condition2));
+                G[tot].push_back(Edge(tot, condition1));
                 IdtoRg[++tot] = n + 3 * graphId + 2, G.push_back({});
-                G[x].push_back(Edge(tot, Opt(2, -2, 0)));
-                G[tot].push_back(Edge(tot, Opt(2, -1, 0)));
+                G[x].push_back(Edge(tot, condition2));
+                G[tot].push_back(Edge(tot, condition1));
             }
             int N;
             cin >> N;
             for(int i = 1; i <= N; i++) {
-                int x, y, a, b;
-                cin >> x >> y >> a >> b;
-               if(!RgtoId.count(x)) {
+                string attr1, attr2;
+                int x, y, a, b, cmp;
+                cin >> attr1 >> attr2 >> cmp;
+                x = Table[attr1.substr(0, attr1.find_first_of('.'))];
+                y = Table[attr1.substr(0, attr2.find_first_of('.'))];
+                if(!RgtoId.count(x)) {
                     RgtoId[x] = ++tot;
                     IdtoRg[tot] = x;
                     G.push_back({});
@@ -223,21 +251,27 @@ namespace Query{
                     G.push_back({}); 
                 }
                 x = RgtoId[x], y = RgtoId[y];
-                G[x].push_back(Edge(y, Opt(1, a, b)));
-                G[y].push_back(Edge(x, Opt(1, b, a)));
+                JoinCondition condition;
+                condition.attr1 = attr1;
+                condition.attr2 = attr2;
+                condition.cmp = cmp;
+                G[x].push_back(Edge(y, condition));
             }
             cin >> N;
             for(int i = 1; i <= N; i++) {                
-                int x, y, a, b = 0;
-                cin >> x >> y >> a;
+                int x, y, a, b, cmp;
+                cin >> x >> y >> a >> b >> cmp;
                 if(!RgtoId.count(x)) {
                     RgtoId[x] = ++tot;
                     IdtoRg[tot] = x;
                     G.push_back({});
                 }
                 x = RgtoId[x];
-                G[x].push_back(Edge(y, Opt(1, a, b)));
-                G[y].push_back(Edge(x, Opt(1, b, a)));
+                JoinCondition condition;
+                condition.attr1 = a;
+                condition.attr2 = b;
+                condition.cmp = cmp;
+                G[x].push_back(Edge(y, condition));
             } 
         }
 
@@ -245,7 +279,7 @@ namespace Query{
 
     vector<int> N;
     vector<long long> Cost;
-    vector<pair<int, int> > Plan;
+    vector<Step> Plan;
 
     int B(int x) {
         return (1 << tot + 1) ^ (x - 1);
@@ -266,7 +300,7 @@ namespace Query{
     void EnumerateCmpRec(int S1, int S2, int X) {
         int N = Neighbor(S2, X);
         for(int s = N; s ; s = (s - 1) & N) {
-            if(Plan[S2 | s] != make_pair(0, 0))
+            if(Plan[S2 | s].S1)
                 EmitCsgCmp(S1, S2 | s);
         }
         X |= N;
@@ -288,7 +322,7 @@ namespace Query{
     void EnumerateCsgRec(int S1, int X) {
         int N = Neighbor(S1, X);
         for(int s = N; s ; s = (s - 1) & N) {
-            if(Plan[S1 | s] != make_pair(0, 0))
+            if(Plan[S1 | s].S1)
                 EmitCsg(S1 | s);
         }
         
@@ -335,7 +369,7 @@ namespace Exert{
             res->zero.push_back(attr_name);
             selected_attr.push_back(attrs[i]); // check the projection attrs' number
         }
-        for (int i=0; i<num2;i++) {
+        for (int i=0; i < num2;i++) {
             attr_name = R.zero[R.num1 + i]; // means the pointers set
             res->poi[attr_name] = i;
             res->zero.push_back(attr_name);

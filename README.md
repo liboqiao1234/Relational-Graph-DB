@@ -26,6 +26,7 @@ vector<set<Tuple*>> pointerSet; // 该元组存储的指针列，指向其他（
 ### 3. RG
 
 ```C++
+string name; // 表的名字
 int num1; // 属性列数量
 int num2; // 指针列数量
 int num3; // 行数量（元组数量）
@@ -44,7 +45,7 @@ map <str, int> poi; // 指针列的  列名->列号（如果需要）
 #### （1）SelCondition
 
 ```C++
-int attrNo; // line no.
+string attrNo; // attr name
 int CMP; // compare type
 char* value; // the constant to be compared
 ```
@@ -52,9 +53,18 @@ char* value; // the constant to be compared
 #### （2）JoinCondition
 
 ```C++
-int attrNo1, attrNo2; // line no. for RG A and RG B
+string attr1, attr2; // attr name for RG A and RG B
 int CMP;
 ```
+
+### 5. Step
+
+```c++
+int S1, S2; // best csg and cmp set
+vector<JoinCondition> conditions; // join condition
+vector<string> attr; // attr which should be contained
+```
+
 
 
 
@@ -64,6 +74,7 @@ int CMP;
 | 1    | == constant_number |
 | 2    | <= constant_number |
 | 3    | >= constant_number |
+| 4    | edge join | 
 | -    | < k   可写为<=k-1  |
 
 
@@ -77,11 +88,6 @@ vector<SelCondition>conditions // 其中Condition之间是且关系，见Conditi
 ```
 
 
-
-
-
-
-
 ## 修改日志
 
 请在每次提交时候在此处附上本次修改的详细内容
@@ -91,6 +97,7 @@ vector<SelCondition>conditions // 其中Condition之间是且关系，见Conditi
 | UUQ 11.29 17:15 | 修改Projection传入内容<br>修改Tuple中attr存储逻辑为union{char *, long long}，并初步修改输入（char\*的输入可能有问题） |
 | UUQ 11.29 17:49 | 新增Condition类，新增toNumber函数，修改了部分由Union带来的错误 |
 | UUQ 12.5 21:20  | 修改了Condition类为两种Condition类，实现了Selection操作（CMP函数）<br>修复了char*的各种bug |
+| JBY 12.5        | JoinCondition 新添加代表 edge join 的 CMP, 更新了 Plan 中每一步 Step 的相关描述，增加了对于不同表中同名属性的处理，更改 attr 的表达形式|
 
 ## 备注
 
