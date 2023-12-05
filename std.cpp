@@ -6,7 +6,7 @@ int n; // number of table
 int m; // number of graph
 
 union Attr{
-    char* string;
+    char* str;
     long long number;
 };
 
@@ -39,7 +39,7 @@ public:
     vector<Tuple> table;
     vector<string>zero; // first row: attr name and pointer name;
     map <string, int> attr; // name -> line no.
-    map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:string
+    map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:str
     map <string, int> poi;
     RG (int num1 = 0, int num2 = 0, int num3 = 0) {
         table.resize(num3);
@@ -63,13 +63,18 @@ struct Opt{
 
 vector<RG> Rgs;
 
-class Condition{
-    int attr; // line no.
+class SelCondition{
+public:
+    int attrNo; // line no.
     int cmp; // compare type
     char* value; // the constant
 };
 
-long long toNum(char *value) {
+class JoinCondition{
+public:
+    int attr1, attr2;
+};
+long long toNum(const char *value) {
     long long res = 0;
     int i = 0;
     int flag = 1;
@@ -94,7 +99,7 @@ namespace Init{
             string attr;
             int attr_type;
             for (int k = 0; k < num1; k++) {
-                cin >> attr >> attr_type;
+                cin >> attr >> attr_type; // attr_type  0 longlong 1 str
                 now.zero.push_back(attr);
                 now.attr_type[k] = attr_type;
                 now.attr[attr] = k;
@@ -104,8 +109,10 @@ namespace Init{
                     if(now.attr_type[k] == 0) {
                         cin >> now.table[j].attribute[k].number;
                     } else {
-                        cin >> now.table[j].attribute[k].string;
+                        now.table[j].attribute[k].str = new char();
+                        cin >> now.table[j].attribute[k].str;
                         // use cin to deal with input for char* type may cause error!!!!!
+                        // already fixed at 23.12.15
                     }
                 }
             }
@@ -314,7 +321,7 @@ namespace Query{
 };
 
 namespace Exert{
-    RG Projection(RG &R, vector<int> attrs, vector<int> pointers) {
+    RG Projection(const RG &R, vector<int> attrs, vector<int> pointers) {
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
         int num3 = R.num3; // tuple num
@@ -347,16 +354,83 @@ namespace Exert{
         }
         return *res;
     }
-    RG Selection(RG &R, vector<Condition>conditions) {
+    bool CMP(const SelCondition &condition, const Tuple &a) { // whether the tuple fits the condition.
+        int cmpop = condition.cmp;
+        int lineNo = condition.attrNo;
+        if (lineNo >= a.num1) {
+            cout << "Select the pointerSet, not supported yet." << endl;
+            return false;
+        }
+        char *con = (char*)malloc(1);
+        Attr* be = new Attr(a.attribute[lineNo]);
+        strcpy(con,condition.value);
+        switch (cmpop){
+            case 0:{
+                if (strcmp(con, be->str)==0) {
+                    return true;
+                }
+                break;
+            }
+            case 1:{
+                if (be->number == toNum(con)) {
+                    return true;
+                }
+                break;
+            }
+            case 2:{
+                if (be->number <= toNum(con)) {
+                    return true;
+                }
+                break;
+            }
+            case 3:{
+                if (be->number >= toNum(con)) {
+                    return true;
+                }
+                break;
+            }
+            default:{
+                cout << "Unknown compare type" <<endl;
+            }
+        }
+        return false;
+    }
+
+    bool CMP(const JoinCondition &condition, const Tuple &a, const Tuple &b) {
         // unfinished
-        RG* res = new RG();
+    }
+    RG Selection(const RG &R, vector<SelCondition> &conditions) {
+        RG* res = new RG(R.num1,R.num2, 0);
+        res->zero = R.zero; // Bug ? when R destruct, what happen to res->zero? -- Seemingly alright.
+        res->attr_type = R.attr_type;
+        res->attr = R.attr;
+        res->poi = R.poi;
+
+        // Exert selection.
+        int tot = R.num3;
+        int flag = 1;
+        int num3 = 0;
+        for (int i = 0; i < tot; i++) {
+            flag = 1;
+            for (int j = 0; j < conditions.size(); j++) {
+                if(!CMP(conditions[j], R.table[i])) {
+                    flag = 0;
+                    break;
+                }
+            }
+            if (flag) {
+                num3++;
+                (res->table).push_back(R.table[i]); // beware bugs of copy construction ?
+            }
+        }
+        res->num3 = num3;
         return *res;
     }
-    RG RGJoin(RG &a, RG &b, vector<Condition>conditions) {
+    RG RGJoin(RG &a, RG &b, vector<JoinCondition>conditions) {
         RG *res = new RG();
         return *res;
     }
-    RG EdgeJoin(RG &a, RG &b, vector<Condition>conditions) {
+    RG EdgeJoin(RG &a, RG &b/*, vector<Condition>conditions*/) {
         RG *res = new RG();
         return *res;
     }
@@ -384,7 +458,7 @@ namespace Debug {
                 if (a.attr_type[j] == 0){
                     cout << a.table[i].attribute[j].number << " ";
                 } else if(a.attr_type[j] == 1) {
-                    cout << a.table[i].attribute[j].string << " ";
+                    cout << *(a.table[i].attribute[j].str) << " ";
                 } else {
                     cout << "Unknown attribute type!" ;
                 }
@@ -400,22 +474,31 @@ namespace Debug {
 
 int main() {
     Init :: Init();
-    vector<int>qqqq;
-    qqqq.push_back(1);// means "name"
-    qqqq.push_back(0);// means "id"
+    vector<int>ProjectAttrs;
+    ProjectAttrs.push_back(1);// means "name"
+    ProjectAttrs.push_back(0);// means "id"
     /*
      * test examples:
       1
       2 3
-      id name
-      1 123
-      2 234
+      id 0
+      name 1
+      1 Name
+      2 Name1
       3 345
       0
      */
-    vector<int>aaaa;
-    RG test = Exert ::Projection(Rgs[0],qqqq,aaaa);
-    Debug::outputRG(test);
+    vector<int>ProjectPointers;
+    RG test = Exert ::Projection(Rgs[0], ProjectAttrs, ProjectPointers);
+
+    vector<SelCondition>SelectionCon;
+    SelCondition a{};
+    a.attrNo = 1; // name
+    a.value = "Name1";
+    a.cmp = 0;
+    SelectionCon.push_back(a);
+    RG testSel = Exert::Selection(Rgs[0], SelectionCon);
+    Debug::outputRG(testSel);
     Query :: Query();
     Calc();
     Output();
