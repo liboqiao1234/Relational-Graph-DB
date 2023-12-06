@@ -87,6 +87,26 @@ vector<string> attr; // attr which should be contained
 vector<SelCondition>conditions // 其中Condition之间是且关系，见Condition类
 ```
 
+## 查询操作接口规范
+
+几种操作均在**Exert**命名空间内，请使用如 `Exert::Projection()`格式调用
+
+### 1. Projection
+
+```C++
+RG Projection(const RG &R, vector<int> attrs)
+```
+
+## TODO List
+
+1. BuildQueryGraph copy所有表（区分属性名），维护PointerSet
+2. 增加反向指针，用来维护中间结果V、E表变化
+3. Plan增加best
+4. Tuple增加RG*指向父表
+5. 每一步需要Projection哪些Attr
+6. 实现Do
+7. 实现Join（Edge和值Join）
+8. Estimation
 
 ## 修改日志
 

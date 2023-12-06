@@ -173,7 +173,7 @@ namespace Query{
     struct Edge{
         int to;
         JoinCondition condition;
-        Edge(int to = 0, JoinCondition condition) : to(to), condition(condition) {}
+        Edge(int to = 0, JoinCondition condition = *(new JoinCondition())) : to(to), condition(condition) {}
     };
 
     vector<vector<Edge> > G;
@@ -276,7 +276,7 @@ namespace Query{
         }
 
     }
-
+    int best;
     vector<int> N;
     vector<long long> Cost;
     vector<Step> Plan;
@@ -355,7 +355,7 @@ namespace Query{
 };
 
 namespace Exert{
-    RG Projection(const RG &R, vector<int> attrs, vector<int> pointers) {
+    RG Projection(const RG &R, vector<string> attrs, vector<int> pointers) {
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
         int num3 = R.num3; // tuple num
@@ -470,8 +470,11 @@ namespace Exert{
     }
 };
 
-void Calc() {
-
+RG Calc(int S) {
+    Step now = Query::Plan[S];
+    int S1 = now.S1, S2 = now.S2;
+    vector<Condition> condition = now.conditions;
+    return Do(Calc(S1), Calc(S2), condition, attr);
 }
 
 void Output() {
