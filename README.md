@@ -19,6 +19,7 @@ union Attr{
 ```C++
 int num1; // number of attribute
 int num2; // number of pointer set
+void * table; // 指向所在的table 由于声明比RG前，不得不用void*
 vector<Attr> attribute; // 该元组存储的各个数据
 vector<set<Tuple*>> pointerSet; // 该元组存储的指针列，指向其他（一个或多个）元组
 ```
@@ -91,10 +92,16 @@ vector<SelCondition>conditions // 其中Condition之间是且关系，见Conditi
 
 几种操作均在**Exert**命名空间内，请使用如 `Exert::Projection()`格式调用
 
+
+
+注意！！！！！！！！！
+
+由于tuple需要存RG* table，所以所有函数必须返回RG*
+
 ### 1. Projection
 
 ```C++
-RG Projection(const RG &R, vector<int> attrs)
+RG* Projection(const RG &R, vector<int> attrs)
 ```
 
 ## TODO List
@@ -120,6 +127,12 @@ RG Projection(const RG &R, vector<int> attrs)
 | JBY 12.5 11:36  | JoinCondition 新添加代表 edge join 的 CMP, 更新了 Plan 中每一步 Step 的相关描述，增加了对于不同表中同名属性的处理，更改 attr 的表达形式 |
 | UUQ 12.11 17:50 | 正在修改查询条件由行号->属性名、属性名前增加表名带来的问题，目前还在修复。<br>实现了getAttrName函数，用来从一个"tableName.attrName"中分割出attrName |
 | UUQ 12.11 21:55 | 修复了Projection和Selection的bug                             |
+| UUQ 12.11 23:05 | 增加Tuple中**void* table**指向所属表，并相应修改所有执行函数的返回类型为**RG*** |
+
+## 疑问
+
+1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？
+2. RGJoin的时候，如果是equalJoin可以消去那个相同属性，但是如果是大小比较呢？那是不是都得保留？ 还是在Equaljoin上层调用Projection的时候消除？
 
 ## 备注
 

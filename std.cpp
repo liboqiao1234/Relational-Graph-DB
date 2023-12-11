@@ -12,15 +12,16 @@ union Attr{
     char* str;
     long long number;
 };
-
 class Tuple{
 public:
     int num1; // number of attribute
     int num2; // number of pointer set
+    void* table; // use  (RG*) to convert!!
     vector<Attr> attribute;
     vector<set<Tuple*>> pointerSet;
 
-    Tuple (int num1 = 0, int num2 = 0) {
+    explicit Tuple (void* fa, int num1 = 0, int num2 = 0) {
+        table = fa;
         attribute.resize(num1);
         for (int i = 0; i < num1; i++) {
             attribute[i].number = 0;
@@ -46,12 +47,12 @@ public:
     map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:str
     map <string, int> poi;
     RG (string name = "EmptyName", int num1 = 0, int num2 = 0, int num3 = 0) {
-        table.resize(num3);
+        //table.resize(num3);
         attr.clear();
         poi.clear();
         zero.clear();
         for (int i = 0; i < num3; i++) {
-            table[i] = Tuple(num1, num2);
+            table.push_back(Tuple(this,num1, num2));
         }
         this->name = name;
         this->num1 = num1;
@@ -362,7 +363,7 @@ namespace Query{
 };
 
 namespace Exert{
-    RG Projection(RG &R, vector<string> attrs, vector<string> pointers) { // if const R, can't access the R.attr[]
+    RG* Projection(RG &R, vector<string> attrs, vector<string> pointers) { // if const R, can't access the R.attr[]
         tmpTableCnt++;
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
@@ -380,7 +381,7 @@ namespace Exert{
             res->attr_type[i] = R.attr_type[line_no];
             selected_attr.push_back(line_no); // check the projection attrs' number
         }
-        for (int i=0; i < num2;i++) {
+        for (int i = 0; i < num2; i++) {
             attr_name = R.name+'.'+R.zero[R.num1 + i]; // means the pointers set
             line_no = R.poi[attr_name];
             res->poi[attr_name] = i;
@@ -389,7 +390,7 @@ namespace Exert{
         }
 
         for (int i = 0; i < num3; i++) {
-            auto tmpTuple = new Tuple(num1, num2);
+            auto tmpTuple = new Tuple(res, num1, num2);
             for (int j = 0; j < num1; j++) {
                 (*tmpTuple).attribute[j]=R.table[i].attribute[selected_attr[j]];
             }
@@ -398,7 +399,7 @@ namespace Exert{
             }
             res->table[i]=*tmpTuple;
         }
-        return *res;
+        return res;
     }
 
     bool CMP(const SelCondition &condition, const Tuple &a, int lineNo) { // whether the tuple fits the condition.
@@ -408,7 +409,7 @@ namespace Exert{
             cout << "Select the pointerSet, not supported yet." << endl;
             return false;
         }
-        char *con = (char*)malloc(1);
+        char *con = (char*)malloc(4);
         Attr* be = new Attr(a.attribute[lineNo]);
         strcpy(con,condition.value);
         switch (cmpop){
@@ -445,13 +446,56 @@ namespace Exert{
 
     bool CMP(const JoinCondition &condition, const Tuple &a, const Tuple &b, int lineNo1, int lineNo2) {
         // unfinished
+        int cmpop = condition.cmp;
+        if(lineNo1 >= a.num1 && lineNo2>=b.num2) {
+            // remain unfinished : edge join
+            cout << "Edge join, unfinished" << endl;
+            return false;
+        }
+        Attr* av = new Attr(a.attribute[lineNo1]);
+        Attr* bv = new Attr(b.attribute[lineNo2]);
+        switch (cmpop) {
+            case 0:{
+                if (strcmp(av->str, bv->str)==0){
+                    return true;
+                }
+                break;
+            }
+            case 1:{
+                if (av->number == bv->number) {
+                    return true;
+                }
+                break;
+            }
+            case 2:{
+                if (av->number <= bv->number) {
+                    return true;
+                }
+                break;
+            }
+            case 3:{
+                if (av->number >= bv->number) {
+                    return true;
+                }
+                break;
+            }
+            case 4:{
+                cout << "edge join unfinished" <<endl;
+                return false;
+                break;
+            }
+            default:{
+                cout << "unknown join" <<endl;
+            }
+        }
+        return false;
     }
-    RG Selection(RG &R, vector<SelCondition> &conditions) {
+    RG* Selection(RG &R, vector<SelCondition> &conditions) {
         tmpTableCnt++;
         string name = "__tmpTable" + to_string(tmpTableCnt);
-        RG* res = new RG(name, R.num1, R.num2, 0);
         int num1 = R.num1;
         int num2 = R.num2;
+        RG* res = new RG(name, num1, num2, 0);
         string AttrName;
         int line_no;
         for (int i = 0; i < num1; i++) {
@@ -472,28 +516,35 @@ namespace Exert{
         int num3 = 0;
         for (int i = 0; i < tot; i++) {
             flag = 1;
-            for (int j = 0; j < conditions.size(); j++) {
-                int lineNo = R.attr[R.name+'.'+conditions[j].attr];
-                if(!CMP(conditions[j], R.table[i], lineNo)) {
+            for (auto & condition : conditions) {
+                int lineNo = R.attr[R.name+'.'+condition.attr];
+                if(!CMP(condition, R.table[i], lineNo)) {
                     flag = 0;
                     break;
                 }
             }
             if (flag) {
                 num3++;
-                (res->table).push_back(R.table[i]); // beware bugs of copy construction ?
+                auto tmpTuple = R.table[i];
+                tmpTuple.table = res;
+                (res->table).push_back(tmpTuple); // beware bugs of copy construction ?
             }
         }
         res->num3 = num3;
-        return *res;
+        return res;
     }
-    RG RGJoin(RG &a, RG &b, vector<JoinCondition>conditions) {
-        RG *res = new RG();
-        return *res;
+    RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions) {
+        tmpTableCnt++;
+        string name = "__tmpTable"+to_string(tmpTableCnt);
+        RG *res = new RG(name, a.num1 + b.num1, a.num2 + b.num2, 0);
+        for (int i = 0;i < a.num1;i++){
+
+        }
+        return res;
     }
-    RG EdgeJoin(RG &a, RG &b/*, vector<Condition>conditions*/) {
+    RG* EdgeJoin(RG &a, RG &b/*, vector<Condition>conditions*/) {
         RG *res = new RG();
-        return *res;
+        return res;
     }
 };
 
@@ -515,6 +566,7 @@ namespace Debug {
         int num1 = a.num1; // attr
         int num2 = a.num2; // pointer
         int num3 = a.num3; // tuple
+        cout << a.name << " addr:" << &a <<endl;
         for (auto i:a.zero) {
             cout << i << ' ';
         }
@@ -533,6 +585,7 @@ namespace Debug {
             for(int j=0;j<num2;j++) {
                 cout << "pointer" << " "; // a.table[i].pointerSet[j]
             }
+            cout << "fatherTableAddr: " << a.table[i].table;
             cout << endl;
         }
     }
@@ -556,8 +609,8 @@ int main() {
       0
      */
     vector<string>ProjectPointers;
-    RG test = Exert ::Projection(Rgs[0], ProjectAttrs, ProjectPointers);
-    Debug::outputRG(test);
+    RG *test = Exert ::Projection(Rgs[0], ProjectAttrs, ProjectPointers);
+    Debug::outputRG(*test);
 
     cout<<endl<<endl;
 
@@ -568,12 +621,12 @@ int main() {
     a.value = "Name1";
     a.cmp = 0;
     SelectionCon.push_back(a);
-    RG testSel = Exert::Selection(Rgs[0], SelectionCon);
+    RG *testSel = Exert::Selection(Rgs[0], SelectionCon);
 
-    Debug::outputRG(testSel);
+    Debug::outputRG(*testSel);
     cout<<endl<<endl;
-    RG testMix = Exert::Projection(testSel, ProjectAttrs, ProjectPointers);
-    Debug::outputRG(testMix);
+    RG *testMix = Exert::Projection(*testSel, ProjectAttrs, ProjectPointers);
+    Debug::outputRG(*testMix);
     Query :: Query();
     Calc(0);
     Output();
