@@ -1,5 +1,7 @@
 #include<bits/stdc++.h>
 
+#include <utility>
+
 using namespace std;
 
 int n; // number of table
@@ -32,6 +34,24 @@ public:
         }
         this->num1 = num1;
         this->num2 = num2;
+    }
+    Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
+        table = fa;
+        num1 = a.num1 + b.num1;
+        num2 = a.num2 + b.num2;
+        attribute.resize(a.num1 + b.num1);
+        for (int i = 0; i < a.num1; i++) {
+            attribute[i] = a.attribute[i];
+        }
+        for (int i = 0; i < b.num1; i++) {
+            attribute[i + a.num1] = b.attribute[i];
+        }
+        for (int i = 0; i < a.num2; i++) {
+            pointerSet[i] = a.pointerSet[i];
+        }
+        for (int i = 0; i < b.num2; i++) {
+            pointerSet[i + a.num2] = b.pointerSet[i];
+        }
     }
 };
 
@@ -181,7 +201,7 @@ namespace Query{
     struct Edge{
         int to;
         JoinCondition condition;
-        Edge(int to = 0, JoinCondition condition = *(new JoinCondition())) : to(to), condition(condition) {}
+        Edge(int to = 0, JoinCondition condition = *(new JoinCondition())) : to(to), condition(std::move(condition)) {}
     };
 
     vector<vector<Edge> > G;
@@ -533,13 +553,59 @@ namespace Exert{
         res->num3 = num3;
         return res;
     }
-    RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions) {
+    RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions) { // simple n^2 join, slow but right
         tmpTableCnt++;
-        string name = "__tmpTable"+to_string(tmpTableCnt);
+        string name = "__tmpTable" + to_string(tmpTableCnt);
+        int tot = 0;
         RG *res = new RG(name, a.num1 + b.num1, a.num2 + b.num2, 0);
-        for (int i = 0;i < a.num1;i++){
-
+        string AttrName;
+        for (int i = 0; i < a.num1; i++) {
+            AttrName = name + '.' + a.zero[i];
+            res -> attr[AttrName] = i;
+            assert(i==res->zero.size()); // test!
+            res -> attr_type[i] = a.attr_type[i];
+            res -> zero.push_back(AttrName);
         }
+        for (int i = 0; i < b.num1; i++) {
+            AttrName = name + '.' + b.zero[i];
+            res -> attr[AttrName] = i + a.num1; // or i+a.num1
+            assert(i+a.num1==res->zero.size());
+            res -> attr_type[i + a.num1] = b.attr_type[i];
+            res -> zero.push_back(AttrName);
+        }
+        for (int i = 0; i < a.num2; i++){
+            AttrName = name + '.' + a.zero[i+a.num1];
+            res -> poi[AttrName] = i;
+            res -> zero.push_back(AttrName);
+        }
+        for (int i = 0; i < b.num2; i++){
+            AttrName = name + '.' + b.zero[i+b.num1];
+            res -> poi[AttrName] = i + a.num2;
+            res -> zero.push_back(AttrName);
+        }
+        // data maintain
+        int flag = 1;
+        for (int i = 0; i < a.num3; i++) {
+            for (int j = 0; j < b.num3; j++) {
+                flag = 1;
+                for (auto & condition: conditions) {
+                    int lineNo1 = a.attr[a.name+'.'+condition.attr1];
+                    int lineNo2 = b.attr[b.name+'.'+condition.attr2];
+                    if (!CMP(condition, a.table[i], b.table[j], lineNo1, lineNo2)) {
+                        flag = 0;
+                        break;
+                    }
+                }
+                if (flag) {
+                    assert(res->attr.size()==a.num1+b.num1);
+                    auto tmpTuple = new Tuple(res, a.table[i], b.table[j]);
+                    res->table.push_back(*tmpTuple);
+                    tot++;
+                }
+            }
+        }
+
+        res->num3 = tot;
         return res;
     }
     RG* EdgeJoin(RG &a, RG &b/*, vector<Condition>conditions*/) {
@@ -585,13 +651,14 @@ namespace Debug {
             for(int j=0;j<num2;j++) {
                 cout << "pointer" << " "; // a.table[i].pointerSet[j]
             }
-            cout << "fatherTableAddr: " << a.table[i].table;
+            cout << "  fatherTableAddr: " << a.table[i].table;
             cout << endl;
         }
     }
 };
 
 int main() {
+    setbuf(stdout, NULL); // for CLion user UUQ
     Init :: Init();
     vector<string>ProjectAttrs;
     ProjectAttrs.emplace_back("name");// means "name"
@@ -627,6 +694,23 @@ int main() {
     cout<<endl<<endl;
     RG *testMix = Exert::Projection(*testSel, ProjectAttrs, ProjectPointers);
     Debug::outputRG(*testMix);
+    cout<<endl<<endl;
+
+
+    vector<JoinCondition> JoinConditions;
+    JoinCondition jc = {"name", "name", 0}; // name equal
+    JoinConditions.push_back(jc);
+    RG *testJoin1 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
+    Debug::outputRG(*testJoin1);
+    cout<<endl<<endl;
+
+
+    JoinConditions.clear();
+    JoinConditions.push_back({"id","id",3}); // A.id >= B.id
+    RG *testJoin2 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
+    Debug::outputRG(*testJoin2);
+    cout<<endl<<endl;
+
     Query :: Query();
     Calc(0);
     Output();

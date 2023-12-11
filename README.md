@@ -101,18 +101,30 @@ vector<SelCondition>conditions // 其中Condition之间是且关系，见Conditi
 ### 1. Projection
 
 ```C++
-RG* Projection(const RG &R, vector<int> attrs)
+RG* Projection(const RG &R, vector<int> attrs);
 ```
+
+### 2. Join
+
+```C++
+RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
+```
+
+定义返回的RG内容：
+
+排列顺序：zero从小到大：a的所有attr，b的所有attr，a的pointer，b的pointer
+
+且此时由于可能出现多个相同的属性名，因此不能直接提取后面的属性名！
 
 ## TODO List
 
 1. BuildQueryGraph copy所有表（区分属性名），维护PointerSet
 2. 增加反向指针，用来维护中间结果V、E表变化
 3. Plan增加best
-4. Tuple增加RG*指向父表
+4. Tuple增加RG*指向父表   √
 5. 每一步需要Projection哪些Attr
 6. 实现Do
-7. 实现Join（Edge和值Join）
+7. 实现Join（Edge （ ）和值Join（ √ ））
 8. Estimation
 
 ## 修改日志
@@ -128,13 +140,16 @@ RG* Projection(const RG &R, vector<int> attrs)
 | UUQ 12.11 17:50 | 正在修改查询条件由行号->属性名、属性名前增加表名带来的问题，目前还在修复。<br>实现了getAttrName函数，用来从一个"tableName.attrName"中分割出attrName |
 | UUQ 12.11 21:55 | 修复了Projection和Selection的bug                             |
 | UUQ 12.11 23:05 | 增加Tuple中**void* table**指向所属表，并相应修改所有执行函数的返回类型为**RG*** |
+| UUQ 12.12 0:04  | 完成了RGJoin，但产生了新的问题，见文档“**疑问**”第一、二、三条 |
 
 ## 疑问
 
 1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？
 2. RGJoin的时候，如果是equalJoin可以消去那个相同属性，但是如果是大小比较呢？那是不是都得保留？ 还是在Equaljoin上层调用Projection的时候消除？
+3. 由于Join以后可能出现多个前缀表名（比如a.id, b.id然后变成table1.a.id, table2.b.id）这下怎么进行Projection和Selection的选取？
 
 ## 备注
 
 1. 操作执行的实现假设用户输入的条件（或者来自plan的condition）不存在类型错误（比如明明是char*字段却使用数字相等、不等的条件）
 2. Selection暂时不支持对于pointerSet的Select（因为这玩意不知道怎么加条件）
+2. 可能的问题：pointerSet的列号是num1+i还是从0开始的i  ——应该从0开始，只不过zero里面合并起来了
