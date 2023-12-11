@@ -374,7 +374,7 @@ namespace Exert{
         for (int i = 0; i < num1; i++) {
             // Pointer remains unsolved. How to define RG.attr ?
             attr_name = res->name+'.'+attrs[i];
-            line_no = R.attr[attr_name];
+            line_no = R.attr[R.name+'.'+attrs[i]];
             res->attr[attr_name] = i;
             res->zero.push_back(attr_name);
             res->attr_type[i] = R.attr_type[line_no];
@@ -446,7 +446,7 @@ namespace Exert{
     bool CMP(const JoinCondition &condition, const Tuple &a, const Tuple &b, int lineNo1, int lineNo2) {
         // unfinished
     }
-    RG Selection(const RG &R, vector<SelCondition> &conditions) {
+    RG Selection(RG &R, vector<SelCondition> &conditions) {
         tmpTableCnt++;
         string name = "__tmpTable" + to_string(tmpTableCnt);
         RG* res = new RG(name, R.num1, R.num2, 0);
@@ -473,7 +473,7 @@ namespace Exert{
         for (int i = 0; i < tot; i++) {
             flag = 1;
             for (int j = 0; j < conditions.size(); j++) {
-                int lineNo = res->attr[R.name+'.'+conditions[j].attr];
+                int lineNo = R.attr[R.name+'.'+conditions[j].attr];
                 if(!CMP(conditions[j], R.table[i], lineNo)) {
                     flag = 0;
                     break;
@@ -569,9 +569,10 @@ int main() {
     a.cmp = 0;
     SelectionCon.push_back(a);
     RG testSel = Exert::Selection(Rgs[0], SelectionCon);
+
+    Debug::outputRG(testSel);
+    cout<<endl<<endl;
     RG testMix = Exert::Projection(testSel, ProjectAttrs, ProjectPointers);
-    // Bugs: selection name is wrong because of new table need new id
-    // consider dealing split by "." and rewrite the attr_name
     Debug::outputRG(testMix);
     Query :: Query();
     Calc(0);
