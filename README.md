@@ -131,8 +131,8 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 
 请在每次提交时候在此处附上本次修改的详细内容
 
-| 修改人 时间     | 修改内容                                                     |
-| --------------- | ------------------------------------------------------------ |
+| 修改人 时间          | 修改内容                                                     |
+|-----------------| ------------------------------------------------------------ |
 | UUQ 11.29 17:15 | 修改Projection传入内容<br>修改Tuple中attr存储逻辑为union{char *, long long}，并初步修改输入（char\*的输入可能有问题） |
 | UUQ 11.29 17:49 | 新增Condition类，新增toNumber函数，修改了部分由Union带来的错误 |
 | UUQ 12.5 21:20  | 修改了Condition类为两种Condition类，实现了Selection操作（CMP函数）<br>修复了char*的各种bug |
@@ -141,7 +141,7 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 | UUQ 12.11 21:55 | 修复了Projection和Selection的bug                             |
 | UUQ 12.11 23:05 | 增加Tuple中**void* table**指向所属表，并相应修改所有执行函数的返回类型为**RG*** |
 | UUQ 12.12 0:04  | 完成了RGJoin，但产生了新的问题，见文档“**疑问**”第一、二、三条 |
-
+| ST 12.12 2:04   | 新增加了一些代码，不知道对不对，只放在readme文件里面，后面可以添加|
 ## 疑问
 
 1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？
@@ -152,4 +152,85 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 
 1. 操作执行的实现假设用户输入的条件（或者来自plan的condition）不存在类型错误（比如明明是char*字段却使用数字相等、不等的条件）
 2. Selection暂时不支持对于pointerSet的Select（因为这玩意不知道怎么加条件）
-2. 可能的问题：pointerSet的列号是num1+i还是从0开始的i  ——应该从0开始，只不过zero里面合并起来了
+3. 可能的问题：pointerSet的列号是num1+i还是从0开始的i  ——应该从0开始，只不过zero里面合并起来了
+
+4. 主函数
+````
+   RG result = Calc(best);//我从这儿开始改
+   Output(result);
+````
+5. 外面的
+````
+RG Selectcolumn(RG a, vector<string> b) {
+    //实现筛选出一些列
+}
+
+RG Do(RG a, RG b, vector<JoinCondition> c, vector<string> d) {
+    RG temp = RGJoin(a, b, c);
+    RG result = Selectcolumn(temp, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
+    return result;
+}
+
+//从这儿开始改
+RG Calc(int S) {
+
+    /*class Step{
+    public:
+        int S1, S2; // csg and cmp set
+        vector<JoinCondition> conditions; // join condition
+        vector<string> attr; // attr which should be contained
+    };*/
+
+    if((S & (S - 1)) == 0) {//如果S是一个二进制数，就是简单的那个表
+        return id_RG(S);//给它一个数，要输出一个RG表？？？怎么去实现
+    }
+    else {
+        Step now = Query::Plan[S];//Plan的每一个元素是一个step
+        int S1 = now.S1, S2 = now.S2;
+        vector<Condition> condition = now.conditions;
+        return Do(Calc(S1), Calc(S2), condition, attr);
+        // return RG(); // for temporary debug
+    }
+}
+
+#include <fstream>
+void Output(RG a) {//对一个表进行输出
+    int num1 = a.num1; // attr
+    int num2 = a.num2; // pointer
+    int num3 = a.num3; // tuple
+
+    // 打开文件以进行写操作，如果文件不存在则创建，如果存在则覆盖
+    ofstream outputFile("result.txt");
+
+    // 重定向标准输出流到文件
+    streambuf *coutbuf = cout.rdbuf(); // 保存原始的 cout 缓冲区指针
+    cout.rdbuf(outputFile.rdbuf()); // 重定向 cout 到文件
+
+    // 输出到控制台和文件
+    for (auto i : a.zero) {
+        cout << i << ' ';
+    }
+    cout << endl;
+    for (int i = 0; i < num3; i++) {
+        for (int j = 0; j < num1; j++) {
+            if (a.attr_type[j] == 0) {
+                cout << a.table[i].attribute[j].number << " ";
+            } else if (a.attr_type[j] == 1) {
+                cout << (a.table[i].attribute[j].str) << " ";
+            } else {
+                cout << "Unknown attribute type!";
+            }
+        }
+        for (int j = 0; j < num2; j++) {
+            cout << "pointer" << " "; // a.table[i].pointerSet[j]
+        }
+        cout << endl;
+    }
+
+    // 恢复标准输出流
+    cout.rdbuf(coutbuf);
+
+    // 关闭文件
+    outputFile.close();
+}
+````
