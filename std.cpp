@@ -4,6 +4,7 @@ using namespace std;
 
 int n; // number of table
 int m; // number of graph
+int tmpTableCnt; // num of tmpTable
 
 map<string, int> Table; // name -> id
 
@@ -94,6 +95,12 @@ long long toNum(const char *value) {
         res = (res << 1) + (res << 3) + (value[i] - '0');
     }
     return res * flag;
+}
+
+string getAttrName(string AttrName) { // to split real AttrName from "TableName.AttrName"
+    int loc = AttrName.find('.');
+    string res = AttrName.substr(loc + 1, AttrName.npos);
+    return res;
 }
 
 namespace Init{ 
@@ -225,7 +232,7 @@ namespace Query{
                 JoinCondition condition1, condition2;
                 condition1.cmp = condition2 .cmp = 4;
                 condition1.attr1 = -1, condition2.attr2 = -2;
-                condition1.attr2 = condition2.attr2 = 0;
+     //           condition1.attr2 = condition2.attr2 = 0;
                 G[y].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(tot, condition1));
                 IdtoRg[++tot] = n + 3 * graphId + 2, G.push_back({});
@@ -355,25 +362,30 @@ namespace Query{
 };
 
 namespace Exert{
-    RG Projection(const RG &R, vector<string> attrs, vector<int> pointers) {
+    RG Projection(RG &R, vector<string> attrs, vector<string> pointers) { // if const R, can't access the R.attr[]
+        tmpTableCnt++;
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
         int num3 = R.num3; // tuple num
-        RG* res = new RG("",num1, num2, num3); // Name!!!
+        RG* res = new RG("__tmpTable" + to_string(tmpTableCnt), num1, num2, num3); // Name!!!
         vector <int> selected_attr, selected_poi;
         string attr_name;
+        int line_no;
         for (int i = 0; i < num1; i++) {
             // Pointer remains unsolved. How to define RG.attr ?
-            attr_name = R.zero[attrs[i]];
+            attr_name = res->name+'.'+attrs[i];
+            line_no = R.attr[attr_name];
             res->attr[attr_name] = i;
             res->zero.push_back(attr_name);
-            selected_attr.push_back(attrs[i]); // check the projection attrs' number
+            res->attr_type[i] = R.attr_type[line_no];
+            selected_attr.push_back(line_no); // check the projection attrs' number
         }
         for (int i=0; i < num2;i++) {
-            attr_name = R.zero[R.num1 + i]; // means the pointers set
+            attr_name = R.name+'.'+R.zero[R.num1 + i]; // means the pointers set
+            line_no = R.poi[attr_name];
             res->poi[attr_name] = i;
             res->zero.push_back(attr_name);
-            selected_poi.push_back(pointers[i]); // pointers number
+            selected_poi.push_back(line_no); // pointers number
         }
 
         for (int i = 0; i < num3; i++) {
@@ -388,6 +400,7 @@ namespace Exert{
         }
         return *res;
     }
+
     bool CMP(const SelCondition &condition, const Tuple &a, int lineNo) { // whether the tuple fits the condition.
         int cmpop = condition.cmp;
         //int lineNo = condition.attr;
@@ -434,11 +447,25 @@ namespace Exert{
         // unfinished
     }
     RG Selection(const RG &R, vector<SelCondition> &conditions) {
-        RG* res = new RG("Name!", R.num1, R.num2, 0);// Name!!!!!
-        res->zero = R.zero; // Bug ? when R destruct, what happen to res->zero? -- Seemingly alright.
-        res->attr_type = R.attr_type;
-        res->attr = R.attr;
-        res->poi = R.poi;
+        tmpTableCnt++;
+        string name = "__tmpTable" + to_string(tmpTableCnt);
+        RG* res = new RG(name, R.num1, R.num2, 0);
+        int num1 = R.num1;
+        int num2 = R.num2;
+        string AttrName;
+        int line_no;
+        for (int i = 0; i < num1; i++) {
+            AttrName = name + '.' + getAttrName(R.zero[i]); // split .?
+            res->zero.push_back(AttrName);
+            res->attr[AttrName] = i;
+        }
+        for (int i = 0; i < num2; i++) {
+            AttrName = name + '.' + getAttrName(R.zero[i+num1]);
+            res->zero.push_back(AttrName);
+            res->poi[AttrName] = i+num1;
+        }
+        res->attr_type = R.attr_type; // because the line_no doesn't change.
+                             // need to be rewrite!!!!!!!!
         // Exert selection.
         int tot = R.num3;
         int flag = 1;
@@ -446,7 +473,7 @@ namespace Exert{
         for (int i = 0; i < tot; i++) {
             flag = 1;
             for (int j = 0; j < conditions.size(); j++) {
-                int lineNo = res->attr[conditions[j].attr];
+                int lineNo = res->attr[R.name+'.'+conditions[j].attr];
                 if(!CMP(conditions[j], R.table[i], lineNo)) {
                     flag = 0;
                     break;
@@ -471,10 +498,12 @@ namespace Exert{
 };
 
 RG Calc(int S) {
+    return RG(); // for temporary debug
     Step now = Query::Plan[S];
     int S1 = now.S1, S2 = now.S2;
-    vector<Condition> condition = now.conditions;
-    return Do(Calc(S1), Calc(S2), condition, attr);
+    //vector<Condition> condition = now.conditions;
+    //return Do(Calc(S1), Calc(S2), condition, attr);
+
 }
 
 void Output() {
@@ -495,7 +524,7 @@ namespace Debug {
                 if (a.attr_type[j] == 0){
                     cout << a.table[i].attribute[j].number << " ";
                 } else if(a.attr_type[j] == 1) {
-                    cout << *(a.table[i].attribute[j].str) << " ";
+                    cout << (a.table[i].attribute[j].str) << " ";
                 } else {
                     cout << "Unknown attribute type!" ;
                 }
@@ -511,12 +540,13 @@ namespace Debug {
 
 int main() {
     Init :: Init();
-    vector<int>ProjectAttrs;
-    ProjectAttrs.push_back(1);// means "name"
-    ProjectAttrs.push_back(0);// means "id"
+    vector<string>ProjectAttrs;
+    ProjectAttrs.emplace_back("name");// means "name"
+    ProjectAttrs.emplace_back("id");// means "id"
     /*
      * test examples:
       1
+      table1
       2 3
       id 0
       name 1
@@ -525,19 +555,26 @@ int main() {
       3 345
       0
      */
-    vector<int>ProjectPointers;
+    vector<string>ProjectPointers;
     RG test = Exert ::Projection(Rgs[0], ProjectAttrs, ProjectPointers);
+    Debug::outputRG(test);
+
+    cout<<endl<<endl;
+
 
     vector<SelCondition>SelectionCon;
-    SelCondition a{};
-    a.attr = 1; // name
+    SelCondition a{};// .name == "Name1"
+    a.attr = "name"; // name
     a.value = "Name1";
     a.cmp = 0;
     SelectionCon.push_back(a);
     RG testSel = Exert::Selection(Rgs[0], SelectionCon);
-    Debug::outputRG(testSel);
+    RG testMix = Exert::Projection(testSel, ProjectAttrs, ProjectPointers);
+    // Bugs: selection name is wrong because of new table need new id
+    // consider dealing split by "." and rewrite the attr_name
+    Debug::outputRG(testMix);
     Query :: Query();
-    Calc();
+    Calc(0);
     Output();
     return 0;
 }
