@@ -131,17 +131,17 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 
 请在每次提交时候在此处附上本次修改的详细内容
 
-| 修改人 时间          | 修改内容                                              |
-|-----------------| ----------------------------------------------------- |
-| UUQ 11.29 17:15 | 修改Projection传入内容<br>修改Tuple中attr存储逻辑为union{char *, long long}，并初步修改输入（char\*的输入可能有问题） |
-| UUQ 11.29 17:49 | 新增Condition类，新增toNumber函数，修改了部分由Union带来的错误 |
-| UUQ 12.5 21:20  | 修改了Condition类为两种Condition类，实现了Selection操作（CMP函数）<br>修复了char*的各种bug |
-| JBY 12.5 11:36  | JoinCondition 新添加代表 edge join 的 CMP, 更新了 Plan 中每一步 Step 的相关描述，增加了对于不同表中同名属性的处理，更改 attr 的表达形式 |
+| 修改人 时间          | 修改内容                                                                                             |
+|-----------------|--------------------------------------------------------------------------------------------------|
+| UUQ 11.29 17:15 | 修改Projection传入内容<br>修改Tuple中attr存储逻辑为union{char *, long long}，并初步修改输入（char\*的输入可能有问题）            |
+| UUQ 11.29 17:49 | 新增Condition类，新增toNumber函数，修改了部分由Union带来的错误                                                       |
+| UUQ 12.5 21:20  | 修改了Condition类为两种Condition类，实现了Selection操作（CMP函数）<br>修复了char*的各种bug                               |
+| JBY 12.5 11:36  | JoinCondition 新添加代表 edge join 的 CMP, 更新了 Plan 中每一步 Step 的相关描述，增加了对于不同表中同名属性的处理，更改 attr 的表达形式     |
 | UUQ 12.11 17:50 | 正在修改查询条件由行号->属性名、属性名前增加表名带来的问题，目前还在修复。<br>实现了getAttrName函数，用来从一个"tableName.attrName"中分割出attrName |
-| UUQ 12.11 21:55 | 修复了Projection和Selection的bug                      |
-| UUQ 12.11 23:05 | 增加Tuple中**void* table**指向所属表，并相应修改所有执行函数的返回类型为**RG*** |
-| UUQ 12.12 0:04  | 完成了RGJoin，但产生了新的问题，见文档“**疑问**”第一、二、三条 |
-| ST 12.12 2:04   | 新增加了一些代码，只放在readme文件里面，后面可以添加|
+| UUQ 12.11 21:55 | 修复了Projection和Selection的bug                                                                      |
+| UUQ 12.11 23:05 | 增加Tuple中**void* table**指向所属表，并相应修改所有执行函数的返回类型为**RG***                                            |
+| UUQ 12.12 0:04  | 完成了RGJoin，但产生了新的问题，见文档“**疑问**”第一、二、三条                                                            |
+| ST 12.12 2:04   | 新增加了一些代码，只放在readme文件里面，后面可以添加。|                                                                   |
 ## 疑问
 
 1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？
