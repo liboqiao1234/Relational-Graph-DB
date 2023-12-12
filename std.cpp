@@ -183,7 +183,7 @@ namespace Init{
                 V.table[j].attribute[0].number = id;
             }
             E_in.zero.push_back(E_in.name + ".id"), E_in.attr[E_in.name + ".id"] = 0, E_in.attr_type[0] = 0;
-            E_in.zero.push_back(E_in.name + ".dst"), E_in.attr[E_in.name + ".dst"] = 1, E_in.attr_type[1] = 2;
+            E_in.zero.push_back(E_in.name + ".src"), E_in.attr[E_in.name + ".src"] = 1, E_in.attr_type[1] = 2;
             E_out.zero.push_back(E_out.name + ".id"), E_out.attr[E_out.name + ".id"] = 0, E_out.attr_type[0] = 0;
             E_out.zero.push_back(E_out.name + ".dst"), E_out.attr[E_out.name + ".dst"] = 1, E_out.attr_type[1] = 2;
             for(int j = 0; j < M; j++) {
@@ -198,24 +198,25 @@ namespace Init{
                 if (E_in.table[j].attribute[1].pointerSet == nullptr) {
                     E_in.table[j].attribute[1].pointerSet = new set<Tuple*>;
                 }
-                if (V.table[y].attribute[2].pointerSet == nullptr) {
-                    V.table[y].attribute[2].pointerSet = new set<Tuple*>;
+                if (V.table[y].attribute[1].pointerSet == nullptr) {
+                    V.table[y].attribute[1].pointerSet = new set<Tuple*>; // in
                 }
                 //auto tmp  = &E_in.table[j];
-                ((set<Tuple*>*)(E_in.table[j].attribute[1].pointerSet))->insert(&V.table[x]);
+                ((set<Tuple*>*)(E_in.table[j].attribute[1].pointerSet))->insert(&(V.table[x]));
                 auto tmp = (set<Tuple*>*)(V.table[y].attribute[2].pointerSet);
-                ((set<Tuple*>*)(V.table[y].attribute[2].pointerSet))->insert(&E_in.table[j]);
+                ((set<Tuple*>*)(V.table[y].attribute[1].pointerSet))->insert(&(E_in.table[j]));
 
                 E_out.table[j].attribute[0].number = id;
 
                 if (E_out.table[j].attribute[1].pointerSet == nullptr) {
                     E_out.table[j].attribute[1].pointerSet = new set<Tuple*>;
                 }
-                ((set<Tuple*>*)(E_out.table[j].attribute[1].pointerSet))->insert(&V.table[y]);
-                if (((set<Tuple*>*)(V.table[x].attribute[1].pointerSet)) == nullptr) {
-                    V.table[x].attribute[1].pointerSet = new set<Tuple*>;
+                ((set<Tuple*>*)(E_out.table[j].attribute[1].pointerSet))->insert(&(V.table[y]));
+                if (((set<Tuple*>*)(V.table[x].attribute[2].pointerSet)) == nullptr) {
+                    V.table[x].attribute[2].pointerSet = new set<Tuple*>;
                 }
-                ((set<Tuple*>*)(V.table[x].attribute[1].pointerSet))->insert(&E_out.table[j]);
+                ((set<Tuple*>*)(V.table[x].attribute[2].pointerSet))->insert(&(E_out.table[j]));
+                //cout<< "test::"<<((set<Tuple*>*)(V.table[x].attribute[2].pointerSet))->count(&(E_out.table[j]))<<endl;
             }
             Table[V.name] = Rgs.size(), Rgs.push_back(V);
             Table[E_in.name] = Rgs.size(), Rgs.push_back(E_in);
@@ -525,8 +526,11 @@ namespace Exert{
         return false;
     }
 
-    bool CMP(const JoinCondition &condition, const Tuple &a, const Tuple &b, int lineNo1, int lineNo2) {
+    bool CMP(const JoinCondition &condition, Tuple *aa, Tuple *bb, int lineNo1, int lineNo2) {
         // unfinished
+        auto &a = *aa;
+        auto &b = *bb;
+        //cout << "Inside a.table[i] addr" << &a<< " b: " << &b<<endl;
         int cmpop = condition.cmp;
         /*if(lineNo1 >= a.num1 && lineNo2>=b.num2) {
             // remain unfinished : edge join
@@ -565,7 +569,7 @@ namespace Exert{
                 break;
             }
             case 4:{
-                if ((a.attribute[lineNo1].pointerSet) != nullptr) {
+                if (a.attribute[lineNo1].pointerSet != nullptr) {
                     if ((*((set<Tuple*>*)(a.attribute[lineNo1].pointerSet))).count((Tuple*)&b) == 1) {
                         return true;
                     }
@@ -666,7 +670,8 @@ namespace Exert{
                 for (auto & condition: conditions) {
                     int lineNo1 = a.attr[condition.attr1];
                     int lineNo2 = b.attr[condition.attr2];
-                    if (!CMP(condition, a.table[i], b.table[j], lineNo1, lineNo2)) {
+                    // cout << "a.table[i] addr" << &a.table[i] << " b: " << &b.table[j]<<endl;
+                    if (!CMP(condition, &a.table[i], &b.table[j], lineNo1, lineNo2)) {
                         flag = 0;
                         break;
                     }
@@ -798,8 +803,8 @@ int main() {
     cout<<endl<<endl;
 
     JoinConditions.clear();
-    JoinConditions.push_back({"graph1V.out", "graph1E_in", 4});
-    RG *testEdgeJ = Exert::RGJoin(Rgs[2],Rgs[3],JoinConditions);
+    JoinConditions.push_back({"graph1V.out", "graph1E_out.dst", 4});
+    RG *testEdgeJ = Exert::RGJoin(Rgs[2],Rgs[4],JoinConditions);
     Debug::outputRG(*testEdgeJ);
     Query :: Query();
     Calc(0);
