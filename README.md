@@ -142,6 +142,7 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 | UUQ 12.12 12:25 | 修改关于属性名中表名的问题，约定查询条件的attr字符串中包含"tableName." |
 | UUQ 12.12 14:16 | 初步实现edgeJoin，但因为InitGraph输入存在问题未能测试。      |
 | JBY 12.12 21:36 | 更改了 union ，实现，pointerSet 和 attribute 的合并，增加对 pointerSet 元素的命名，修复了 InitGrapgh 的 bug |
+| UUQ 12.13 0:55  | 修改pointerSet带来的影响                                     |
 ## 疑问
 
 1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？
