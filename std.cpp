@@ -210,6 +210,12 @@ namespace Init{
 
 namespace Query{
 
+    struct Edge{
+        int to;
+        JoinCondition condition;
+        Edge(int to = 0, JoinCondition condition = *(new JoinCondition())) : to(to), condition(std::move(condition)) {}
+    };
+
     int tot, cnt;
     vector<RG> tables;
     map<string, int> TableId;
@@ -220,11 +226,7 @@ namespace Query{
         return 0;
     }
 
-    struct Edge{
-        int to;
-        JoinCondition condition;
-        Edge(int to = 0, JoinCondition condition = *(new JoinCondition())) : to(to), condition(std::move(condition)) {}
-    };
+
 
     void BuildQueryGraph() {
         tot = 0, cnt = 0;
@@ -419,6 +421,7 @@ namespace Query{
 
 namespace Exert{
     RG* Projection(RG &R, vector<string> attrs, vector<string> pointers) { // if const R, can't access the R.attr[]
+        // attrs include the RGName!!!!!!!!!!!!!! f**k...
         tmpTableCnt++;
         int num1 = attrs.size(); // num1: attr
         int num2 = pointers.size(); // num2: pointer
@@ -429,15 +432,15 @@ namespace Exert{
         int line_no;
         for (int i = 0; i < num1; i++) {
             // Pointer remains unsolved. How to define RG.attr ?
-            attr_name = res->name+'.'+attrs[i];
-            line_no = R.attr[R.name+'.'+attrs[i]];
+            attr_name = attrs[i];
+            line_no = R.attr[attrs[i]];
             res->attr[attr_name] = i;
             res->zero.push_back(attr_name);
             res->attr_type[i] = R.attr_type[line_no];
             selected_attr.push_back(line_no); // check the projection attrs' number
         }
         for (int i = 0; i < num2; i++) {
-            attr_name = R.name+'.'+R.zero[R.num1 + i]; // means the pointers set
+            attr_name = R.zero[R.num1 + i]; // means the pointers set
             line_no = R.poi[attr_name];
             res->poi[attr_name] = i;
             res->zero.push_back(attr_name);
@@ -447,12 +450,12 @@ namespace Exert{
         for (int i = 0; i < num3; i++) {
             auto tmpTuple = new Tuple(res, num1, num2);
             for (int j = 0; j < num1; j++) {
-                (*tmpTuple).attribute[j]=R.table[i].attribute[selected_attr[j]];
+                (*tmpTuple).attribute[j] = R.table[i].attribute[selected_attr[j]];
             }
             for (int j = 0; j < num2; j++) {
-                (*tmpTuple).pointerSet[j]=R.table[i].pointerSet[selected_poi[j]];
+                (*tmpTuple).pointerSet[j] = R.table[i].pointerSet[selected_poi[j]];
             }
-            res->table[i]=*tmpTuple;
+            res->table[i] = *tmpTuple;
         }
         return res;
     }
@@ -553,16 +556,19 @@ namespace Exert{
         RG* res = new RG(name, num1, num2, 0);
         string AttrName;
         int line_no;
-        for (int i = 0; i < num1; i++) {
-            AttrName = name + '.' + getAttrName(R.zero[i]); // split .?
-            res->zero.push_back(AttrName);
-            res->attr[AttrName] = i;
-        }
-        for (int i = 0; i < num2; i++) {
-            AttrName = name + '.' + getAttrName(R.zero[i+num1]);
-            res->zero.push_back(AttrName);
-            res->poi[AttrName] = i+num1;
-        }
+        res->zero = R.zero;
+        res->attr = R.attr;
+        res->poi = R.poi;
+//        for (int i = 0; i < num1; i++) {
+//            AttrName = name + '.' + getAttrName(R.zero[i]); // split .?
+//            res->zero.push_back(AttrName);
+//            res->attr[AttrName] = i;
+//        }
+//        for (int i = 0; i < num2; i++) {
+//            AttrName = name + '.' + getAttrName(R.zero[i+num1]);
+//            res->zero.push_back(AttrName);
+//            res->poi[AttrName] = i+num1;
+//        }
         res->attr_type = R.attr_type; // because the line_no doesn't change.
                              // need to be rewrite!!!!!!!!
         // Exert selection.
@@ -572,7 +578,7 @@ namespace Exert{
         for (int i = 0; i < tot; i++) {
             flag = 1;
             for (auto & condition : conditions) {
-                int lineNo = R.attr[R.name+'.'+condition.attr];
+                int lineNo = R.attr[condition.attr];
                 if(!CMP(condition, R.table[i], lineNo)) {
                     flag = 0;
                     break;
@@ -595,26 +601,26 @@ namespace Exert{
         RG *res = new RG(name, a.num1 + b.num1, a.num2 + b.num2, 0);
         string AttrName;
         for (int i = 0; i < a.num1; i++) {
-            AttrName = name + '.' + a.zero[i];
+            AttrName = a.zero[i];
             res -> attr[AttrName] = i;
             assert(i==res->zero.size()); // test!
             res -> attr_type[i] = a.attr_type[i];
             res -> zero.push_back(AttrName);
         }
         for (int i = 0; i < b.num1; i++) {
-            AttrName = name + '.' + b.zero[i];
+            AttrName = b.zero[i];
             res -> attr[AttrName] = i + a.num1; // or i+a.num1
             assert(i+a.num1==res->zero.size());
             res -> attr_type[i + a.num1] = b.attr_type[i];
             res -> zero.push_back(AttrName);
         }
         for (int i = 0; i < a.num2; i++){
-            AttrName = name + '.' + a.zero[i+a.num1];
+            AttrName = a.zero[i+a.num1];
             res -> poi[AttrName] = i;
             res -> zero.push_back(AttrName);
         }
         for (int i = 0; i < b.num2; i++){
-            AttrName = name + '.' + b.zero[i+b.num1];
+            AttrName = b.zero[i+b.num1];
             res -> poi[AttrName] = i + a.num2;
             res -> zero.push_back(AttrName);
         }
@@ -624,8 +630,8 @@ namespace Exert{
             for (int j = 0; j < b.num3; j++) {
                 flag = 1;
                 for (auto & condition: conditions) {
-                    int lineNo1 = a.attr[a.name+'.'+condition.attr1];
-                    int lineNo2 = b.attr[b.name+'.'+condition.attr2];
+                    int lineNo1 = a.attr[condition.attr1];
+                    int lineNo2 = b.attr[condition.attr2];
                     if (!CMP(condition, a.table[i], b.table[j], lineNo1, lineNo2)) {
                         flag = 0;
                         break;
@@ -696,19 +702,27 @@ int main() {
     setbuf(stdout, NULL); // for CLion user UUQ
     Init :: Init();
     vector<string>ProjectAttrs;
-    ProjectAttrs.emplace_back("name");// means "name"
-    ProjectAttrs.emplace_back("id");// means "id"
+    ProjectAttrs.emplace_back("table1.name");// means "name"
+    ProjectAttrs.emplace_back("table1.id");// means "id"
     /*
-     * test examples:
-      1
-      table1
-      2 3
-      id 0
-      name 1
-      1 Name
-      2 Name1
-      3 345
-      0
+     * test examples
+    2
+table1
+2 3
+id 0
+name 1
+1 Name
+2 Name1
+3 345
+table2
+2 3
+id 0
+name 1
+321 Name
+213 Name1
+3 3456
+
+0
      */
     vector<string>ProjectPointers;
     RG *test = Exert ::Projection(Rgs[0], ProjectAttrs, ProjectPointers);
@@ -719,7 +733,7 @@ int main() {
 
     vector<SelCondition>SelectionCon;
     SelCondition a{};// .name == "Name1"
-    a.attr = "name"; // name
+    a.attr = "table1.name"; // name
     a.value = "Name1";
     a.cmp = 0;
     SelectionCon.push_back(a);
@@ -733,7 +747,7 @@ int main() {
 
 
     vector<JoinCondition> JoinConditions;
-    JoinCondition jc = {"name", "name", 0}; // name equal
+    JoinCondition jc = {"table1.name", "table2.name", 0}; // name equal
     JoinConditions.push_back(jc);
     RG *testJoin1 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
     Debug::outputRG(*testJoin1);
@@ -741,7 +755,7 @@ int main() {
 
 
     JoinConditions.clear();
-    JoinConditions.push_back({"id","id",3}); // A.id >= B.id
+    JoinConditions.push_back({"table1.id","table2.id",3}); // A.id >= B.id
     RG *testJoin2 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
     Debug::outputRG(*testJoin2);
     cout<<endl<<endl;
