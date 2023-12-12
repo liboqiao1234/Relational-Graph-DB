@@ -81,6 +81,18 @@ public:
     }
 };
 
+void ChangeTableName(RG &now, string newName) {    
+    now.name = newName;
+    now.attr.clear();
+    for(int i = 0 ; i < now.zero.size(); i++) {
+        string name = now.zero[i];
+        int number = now.attr[name];
+        now.attr.erase(name);
+        name = now.name + name.substr(name.find_first_of('.') + 1, name.size());
+        now.zero[i] = name, now.attr[name] = number;
+    }
+}
+
 vector<RG> Rgs;
 
 class SelCondition{
@@ -100,7 +112,7 @@ class Step{
 public:
     int S1, S2; // csg and cmp set
     vector<JoinCondition> conditions; // join condition
-    vector<string> attr; // attr which should be contained
+    // vector<string> attr; // attr which should be contained
 };
 
 long long toNum(const char *value) {
@@ -150,7 +162,7 @@ namespace Init{
                         now.table[j].attribute[k].str = new char();
                         cin >> now.table[j].attribute[k].str;
                         // use cin to deal with input for char* type may cause error!!!!!
-                        // already fixed at 23.12.15
+                        // already fixed at 23.12.1
                     }
                 }
             }
@@ -198,119 +210,98 @@ namespace Init{
 
 namespace Query{
 
+    int tot, cnt;
+    vector<RG> tables;
+    map<string, int> TableId;
+    vector<vector<Edge> > G;
+    vector<int> checkId;
+
+    long long GetCost(Step now) {
+        return 0;
+    }
+
     struct Edge{
         int to;
         JoinCondition condition;
         Edge(int to = 0, JoinCondition condition = *(new JoinCondition())) : to(to), condition(std::move(condition)) {}
     };
 
-    vector<vector<Edge> > G;
-    map<int, int> RgtoId;
-    map<int, int> IdtoRg;
-    int tot;
-
     void BuildQueryGraph() {
-        tot = -1, RgtoId.clear(), IdtoRg.clear();
+        tot = 0, cnt = 0;
+        // RgtoId.clear(), IdtoRg.clear();
         int type;
         cin >> type;
-        if(type == 0) {
-            int N;
-            cin >> N;
-            for(int i = 1; i <= N; i++) {
-                string attr1, attr2;
-                int x, y, a, b, cmp;
-                cin >> attr1 >> attr2 >> cmp;
-                x = Table[attr1.substr(0, attr1.find_first_of('.'))];
-                y = Table[attr1.substr(0, attr2.find_first_of('.'))];
-                if(!RgtoId.count(x)) {
-                    RgtoId[x] = ++tot;
-                    IdtoRg[tot] = x;
-                    G.push_back({});
-                }
-                if(!RgtoId.count(y)) {
-                    RgtoId[y] = ++tot;
-                    IdtoRg[tot] = y;
-                    G.push_back({}); 
-                }
-                x = RgtoId[x], y = RgtoId[y];
-                JoinCondition condition;
-                condition.attr1 = attr1;
-                condition.attr2 = attr2;
-                condition.cmp = cmp;
-                G[x].push_back(Edge(y, condition));
-            }
-        } else {
+        if(type == 1) {
+            // build graphMatch
             int graphN, graphM, graphId; 
             cin >> graphId >> graphN >> graphM;
             for(int i = 0; i < graphN; i++) {
-                IdtoRg[++tot] = n + 3 * graphId;
-                G.push_back({});
+                RG now = Rgs[n + 3 * graphId];
+                ChangeTableName(now, "V" + i);
+                TableId["V" + i] = tot++;
+                G.push_back({}), tables.push_back(now), checkId.push_back(cnt++);
             }
             for(int i = 0; i < graphM; i++) {
                 int x, y;
                 cin >> x >> y;
-                IdtoRg[++tot] = n + 3 * graphId + 1, G.push_back({});
                 JoinCondition condition1, condition2;
                 condition1.cmp = condition2 .cmp = 4;
                 condition1.attr1 = -1, condition2.attr2 = -2;
-     //           condition1.attr2 = condition2.attr2 = 0;
-                G[y].push_back(Edge(tot, condition2));
-                G[tot].push_back(Edge(tot, condition1));
-                IdtoRg[++tot] = n + 3 * graphId + 2, G.push_back({});
-                G[x].push_back(Edge(tot, condition2));
-                G[tot].push_back(Edge(tot, condition1));
-            }
-            int N;
-            cin >> N;
-            for(int i = 1; i <= N; i++) {
-                string attr1, attr2;
-                int x, y, a, b, cmp;
-                cin >> attr1 >> attr2 >> cmp;
-                x = Table[attr1.substr(0, attr1.find_first_of('.'))];
-                y = Table[attr1.substr(0, attr2.find_first_of('.'))];
-                if(!RgtoId.count(x)) {
-                    RgtoId[x] = ++tot;
-                    IdtoRg[tot] = x;
-                    G.push_back({});
-                }
-                if(!RgtoId.count(y)) {
-                    RgtoId[y] = ++tot;
-                    IdtoRg[tot] = y;
-                    G.push_back({}); 
-                }
-                x = RgtoId[x], y = RgtoId[y];
-                JoinCondition condition;
-                condition.attr1 = attr1;
-                condition.attr2 = attr2;
-                condition.cmp = cmp;
-                G[x].push_back(Edge(y, condition));
-            }
-            cin >> N;
-            for(int i = 1; i <= N; i++) {                
-                int x, y, a, b, cmp;
-                cin >> x >> y >> a >> b >> cmp;
-                if(!RgtoId.count(x)) {
-                    RgtoId[x] = ++tot;
-                    IdtoRg[tot] = x;
-                    G.push_back({});
-                }
-                x = RgtoId[x];
-                JoinCondition condition;
-                condition.attr1 = a;
-                condition.attr2 = b;
-                condition.cmp = cmp;
-                G[x].push_back(Edge(y, condition));
-            } 
-        }
 
+                RG now = Rgs[n + 3 * graphId + 1];
+                ChangeTableName(now, "E_rev" + i);
+                TableId["E_rev" + i] = tot;
+                G.push_back({}), tables.push_back(now), checkId.push_back(cnt);
+
+                G[y].push_back(Edge(tot, condition2));
+                G[tot].push_back(Edge(x, condition1));
+                tot++;
+
+                now = Rgs[n + 3 * graphId + 2];
+                ChangeTableName(now, "E_ord" + i);
+                TableId["E_ord" + i] = tot;
+                G.push_back({}), tables.push_back(now), checkId.push_back(cnt++);
+
+                G[x].push_back(Edge(tot, condition2));
+                G[tot].push_back(Edge(y, condition1));
+                tot++;
+            }
+        }
+        int N;
+        cin >> N;
+        for(int i = 1; i <= N; i++) {
+            string attr1, attr2;
+            int x, y, a, b, cmp;
+            cin >> attr1 >> attr2 >> cmp;
+            string tableName1 = attr1.substr(0, attr1.find_first_of('.'));
+            string tableName2 = attr2.substr(0, attr2.find_first_of('.'));
+            if(!TableId.count(tableName1)) {
+                TableId[tableName1] = tot++;
+                G.push_back({}), tables.push_back(Rgs[x]), checkId.push_back(cnt++);
+            }
+            if(!TableId.count(tableName2)) {
+                TableId[tableName2] = tot++;
+                G.push_back({}), tables.push_back(Rgs[x]), checkId.push_back(cnt++);
+            }
+            x = TableId[tableName1];
+            y = TableId[tableName2];
+            JoinCondition condition;
+            condition.attr1 = attr1;
+            condition.attr2 = attr2;
+            condition.cmp = cmp;
+            G[x].push_back(Edge(y, condition));
+        }
     }
+
     int best;
+    map<int, int> Id;
     vector<int> N;
     vector<long long> Cost;
     vector<Step> Plan;
+    vector<int> Can;
 
     int B(int x) {
-        return (1 << tot + 1) ^ (x - 1);
+        return ((1 << tot) - 1) ^ (x - 1);
     }
 
     int Min(int x) {
@@ -320,9 +311,43 @@ namespace Query{
     int Neighbor(int S, int X) {
         return N[S] ^ (N[S] & X); 
     }
+    
+    Step GetStep(int S1, int S2) {
+        Step res;
+        res.S1 = S1, res.S2 = S2, res.conditions.clear();
+        for(int t = S1; t; t ^= Min(t))  {
+            int i = Id[t];
+            for(auto [j, condition] : G[i]) if(S2 >> j & 1) {
+                res.conditions.push_back(condition);
+            }
+        }
+        for(int t = S2; t; t ^= Min(t)) {
+            int i = Id[t];
+            for(auto [j, condition] : G[i]) if(S1 >> j & 1) {
+                JoinCondition condition1 = condition;
+                if(condition1.cmp == 2 || condition1.cmp == 3) 
+                    condition1.cmp = 5 - condition1.cmp;
+                swap(condition1.attr1, condition1.attr2);
+                res.conditions.push_back(condition1);
+            }
+        }
+        return res;
+    }
 
     void EmitCsgCmp(int S1, int S2) {
-        
+        int Sta = S1 | S2;
+        if(!Can[Sta]) return ;
+        Step now = GetStep(S1, S2);
+
+        if(Plan[Sta].S1 == 0 || Cost[Sta] > Cost[S1] + Cost[S2] + GetCost(now)) {
+            Plan[Sta] = now;
+        }
+
+        if(Can[Sta] == 2) {
+            if(best == -1 || Cost[Sta] < Cost[best]) {
+                best = Sta;
+            }
+        }
     }
 
     void EnumerateCmpRec(int S1, int S2, int X) {
@@ -359,17 +384,27 @@ namespace Query{
     }
 
     void GetPlan() {
-        int sta = (1 << tot + 1);
+        int sta = (1 << tot);
+        best = -1;
         Cost.clear(), Cost.resize(sta);
         Plan.clear(), Plan.resize(sta);
-        N.clear(), N.resize(sta);        
-        for(int i = 0; i <= tot; i++) {
+        N.clear(), N.resize(sta);
+        Can.clear(), Can.resize(sta); 
+        for(int s = 0; s < sta; s++) {
+            vector<int> vis(cnt, 0); 
+            for(int i = 0; i < tot; i++) 
+                if(s >> i & 1) vis[checkId[i]]++;
+            Can[s] = *max_element(vis.begin(), vis.end()) <= 1;            
+            if(*min_element(vis.begin(), vis.end()) >= 1) Can[s] = 2;
+        }
+        for(int i = 0; i < tot; i++) {
+            Id[1 << i] = i;
             for(auto edge : G[i]) N[1 << i] |= edge.to;
         }
         for(int s = 1; s < sta; s++) {
             N[s] = N[s  ^ (s & -s)] | N[s & -s];
         }
-        for(int i = tot; i >= 0; i--) {
+        for(int i = tot - 1; i >= 0; i--) {
             EmitCsg(1 << i);
             EnumerateCsgRec(1 << i , B(1 << i));
         }
