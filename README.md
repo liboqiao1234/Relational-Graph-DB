@@ -11,6 +11,7 @@ Multimoding query based on extended relational model.
 union Attr{
     char* str;
     long long number;
+    void* pointerSet;
 };
 ```
 
@@ -18,10 +19,8 @@ union Attr{
 
 ```C++
 int num1; // number of attribute
-int num2; // number of pointer set
 void * table; // 指向所在的table 由于声明比RG前，不得不用void*
 vector<Attr> attribute; // 该元组存储的各个数据
-vector<set<Tuple*>> pointerSet; // 该元组存储的指针列，指向其他（一个或多个）元组
 ```
 
 ### 3. RG
@@ -29,7 +28,6 @@ vector<set<Tuple*>> pointerSet; // 该元组存储的指针列，指向其他（
 ```C++
 string name; // 表的名字
 int num1; // 属性列数量
-int num2; // 指针列数量
 int num3; // 行数量（元组数量）
 vector<Tuple> table; // 存储数据的表
 
@@ -38,7 +36,6 @@ vector<str>zero;
 
 map <str, int> attr; // name -> line no. 属性名 到 列号 的映射
 map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:char* 该列存储的数据类型；0表示long long，1表示char*
-map <str, int> poi; // 指针列的  列名->列号（如果需要）
 ```
 
 ### 4. Condition
@@ -144,6 +141,7 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 | JBY 12.12 2:46  | 完成了 BuildQueryGraph 中表的copy和改名，简化了询问的输入形式。完成对best的添加，实现了EmitCsgCmp的框架（仍缺少代价评估， |
 | UUQ 12.12 12:25 | 修改关于属性名中表名的问题，约定查询条件的attr字符串中包含"tableName." |
 | UUQ 12.12 14:16 | 初步实现edgeJoin，但因为InitGraph输入存在问题未能测试。      |
+| JBY 12.12 21:36 | 更改了 union ，实现，pointerSet 和 attribute 的合并，增加对 pointerSet 元素的命名，修复了 InitGrapgh 的 bug |
 ## 疑问
 
 1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？

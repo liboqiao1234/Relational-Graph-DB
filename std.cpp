@@ -13,6 +13,7 @@ map<string, int> Table; // name -> id
 union Attr{
     char* str;
     long long number;
+    void* pointerSet;
 };
 
 class CompareTuple {
@@ -25,28 +26,20 @@ public:
 class Tuple{
 public:
     int num1; // number of attribute
-    int num2; // number of pointer set
     void* table; // use  (RG*) to convert!!
     vector<Attr> attribute;
-    vector<set<Tuple*>> pointerSet;
 
-    explicit Tuple (void* fa, int num1 = 0, int num2 = 0) {
+    explicit Tuple (void* fa, int num1 = 0) {
         table = fa;
         attribute.resize(num1);
         for (int i = 0; i < num1; i++) {
             attribute[i].number = 0;
         }
-        pointerSet.resize(num2);
-        for (int i = 0; i < num2; i++) {
-            pointerSet[i].clear();
-        }
         this->num1 = num1;
-        this->num2 = num2;
     }
     Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
         table = fa;
         num1 = a.num1 + b.num1;
-        num2 = a.num2 + b.num2;
         attribute.resize(a.num1 + b.num1);
         for (int i = 0; i < a.num1; i++) {
             attribute[i] = a.attribute[i];
@@ -54,37 +47,28 @@ public:
         for (int i = 0; i < b.num1; i++) {
             attribute[i + a.num1] = b.attribute[i];
         }
-        for (int i = 0; i < a.num2; i++) {
-            pointerSet[i] = a.pointerSet[i];
-        }
-        for (int i = 0; i < b.num2; i++) {
-            pointerSet[i + a.num2] = b.pointerSet[i];
-        }
     }
 };
 
 class RG{
 public:
     int num1; // number of attribute
-    int num2; // number of pointer set
     int num3; // number of tuple
     string name;
     vector<Tuple> table;
     vector<string>zero; // first row: attr name and pointer name;
     map <string, int> attr; // name -> line no.
     map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:str
-    map <string, int> poi;
-    explicit RG (string name = "EmptyName", int num1 = 0, int num2 = 0, int num3 = 0) {
+    explicit RG (string name = "EmptyName", int num1 = 0,  int num3 = 0) {
         //table.resize(num3);
         attr.clear();
         poi.clear();
         zero.clear();
         for (int i = 0; i < num3; i++) {
-            table.emplace_back(this,num1, num2);
+            table.emplace_back(this, num1);
         }
         this->name = name;
         this->num1 = num1;
-        this->num2 = num2;
         this->num3 = num3;
     }
 };
@@ -152,7 +136,7 @@ namespace Init{
             cin >> name;
             int num1, num3;
             cin >> num1 >> num3;
-            RG now = RG(name, num1, 0, num3);
+            RG now = RG(name, num1, num3);
             string attr;
             int attr_type;
             for (int k = 0; k < num1; k++) {
@@ -187,29 +171,33 @@ namespace Init{
             int N, M; // number of nodes and edges
             cin >> N >> M;
 
-            RG V(name + "V", 1, 2, N);
-            RG E_in(name + "E_in", 1, 1, M);
-            RG E_out(name + "E_out", 1, 1, M);
+            RG V(name + "V", 3, N);
+            RG E_in(name + "E_in", 2, M);
+            RG E_out(name + "E_out", 2, M);
 
             V.zero.push_back(V.name + ".id"), V.attr[V.name + ".id"] = 0, V.attr_type[0] = 0;
+            V.zero.push_back(V.name + ".in"), V.attr[V.name + ".in"] = 1, V.attr_type[1] = 2;
+            V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
             for(int j = 0; j < N; j++) {
                 long long id;
                 cin >> id;
                 V.table[j].attribute[0].number = id;
             }
             E_in.zero.push_back(E_in.name + ".id"), E_in.attr[E_in.name + ".id"] = 0, E_in.attr_type[0] = 0;
+            E_in.zero.push_back(E_in.name + ".dst"), E_in.attr[E_in.name + ".dst"] = 1, E_in.attr_type[1] = 2;
             E_out.zero.push_back(E_out.name + ".id"), E_out.attr[E_out.name + ".id"] = 0, E_out.attr_type[0] = 0;
+            E_out.zero.push_back(E_out.name + ".dst"), E_out.attr[E_out.name + ".dst"] = 1, E_out.attr_type[1] = 2;
             for(int j = 0; j < M; j++) {
                 int x, y;
                 long long id;
                 cin >> x >> y >> id; 
                 E_in.table[j].attribute[0].number = id;
-                E_in.table[j].pointerSet[0].insert(&V.table[x]);
-                V.table[y].pointerSet[1].insert(&E_in.table[j]);
+                (*((set<Tuple*>*)(E_in.table[j].attribute[1].pointerSet))).insert(&V.table[x]);
+                (*((set<Tuple*>*)(V.table[y].attribute[2].pointerSet))).insert(&E_in.table[j]);
 
                 E_out.table[j].attribute[0].number = id;
-                E_out.table[j].pointerSet[0].insert(&V.table[y]);
-                V.table[x].pointerSet[0].insert(&E_out.table[j]);
+                (*((set<Tuple*>*)(E_out.table[j].attribute[1].pointerSet))).insert(&V.table[y]);
+                (*((set<Tuple*>*)(V.table[x].attribute[1].pointerSet))).insert(&E_out.table[j]);
             }
             Table[V.name] = Rgs.size(), Rgs.push_back(V);
             Table[E_in.name] = Rgs.size(), Rgs.push_back(E_in);
@@ -253,8 +241,8 @@ namespace Query{
             cin >> graphId >> graphN >> graphM;
             for(int i = 0; i < graphN; i++) {
                 RG now = Rgs[n + 3 * graphId];
-                ChangeTableName(now, "V" + i);
-                TableId["V" + i] = tot++;
+                ChangeTableName(now, "V" + to_string(i));
+                TableId["V" + to_string(i)] = tot++;
                 G.push_back({}), tables.push_back(now), checkId.push_back(cnt++);
             }
             for(int i = 0; i < graphM; i++) {
@@ -262,22 +250,25 @@ namespace Query{
                 cin >> x >> y;
                 JoinCondition condition1, condition2;
                 condition1.cmp = condition2 .cmp = 4;
-                condition1.attr1 = -1, condition2.attr2 = -2;
 
                 RG now = Rgs[n + 3 * graphId + 1];
-                ChangeTableName(now, "E_rev" + i);
-                TableId["E_rev" + i] = tot;
+                ChangeTableName(now, "E_rev" + to_string(i));
+                TableId["E_rev" + to_string(i)] = tot;
                 G.push_back({}), tables.push_back(now), checkId.push_back(cnt);
 
+                condition1.attr1 = "E_rev" + to_string(i) + ".dst";
+                condition2.attr2 = "V" + to_string(y) + ".in";
                 G[y].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(x, condition1));
                 tot++;
 
                 now = Rgs[n + 3 * graphId + 2];
-                ChangeTableName(now, "E_ord" + i);
-                TableId["E_ord" + i] = tot;
+                ChangeTableName(now, "E_ord" + to_string(i));
+                TableId["E_ord" + to_string(i)] = tot;
                 G.push_back({}), tables.push_back(now), checkId.push_back(cnt++);
 
+                condition1.attr1 = "E_ord" + to_string(i) + ".dst";
+                condition2.attr2 = "V" + to_string(x) + ".out";
                 G[x].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(y, condition1));
                 tot++;
@@ -719,69 +710,76 @@ namespace Debug {
 };
 
 int main() {
-    setbuf(stdout, NULL); // for CLion user UUQ
-    Init :: Init();
-    vector<string>ProjectAttrs;
-    ProjectAttrs.emplace_back("table1.name");// means "name"
-    ProjectAttrs.emplace_back("table1.id");// means "id"
-    /*
-     * test examples
-    2
-table1
-2 3
-id 0
-name 1
-1 Name
-2 Name1
-3 345
-table2
-2 3
-id 0
-name 1
-321 Name
-213 Name1
-3 3456
+    Init::InitGraph();
+        // setbuf(stdout, NULL); // for CLion user UUQ
+        Init :: Init();
+        vector<string>ProjectAttrs;
+        ProjectAttrs.emplace_back("table1.name");// means "name"
+        ProjectAttrs.emplace_back("table1.id");// means "id"
+        /*test examples
+        2
+        table1
+        2 3
+        id 0
+        name 1
+        1 Name
+        2 Name1
+        3 345
+        table2
+        2 3
+        id 0
+        name 1
+        321 Name
+        213 Name1
+        3 3456
 
-0
-     */
-    vector<string>ProjectPointers;
-    RG *test = Exert ::Projection(Rgs[0], ProjectAttrs, ProjectPointers);
-    Debug::outputRG(*test);
+        1
+        graph1
+        3 2
+        1 2 3
+        0 1 0
+        1 2 1
+        */
+        vector<string>ProjectPointers;
+        RG *test = Exert ::Projection(Rgs[0], ProjectAttrs, ProjectPointers);
+        Debug::outputRG(*test);
 
-    cout<<endl<<endl;
-
-
-    vector<SelCondition>SelectionCon;
-    SelCondition a{};// .name == "Name1"
-    a.attr = "table1.name"; // name
-    a.value = "Name1";
-    a.cmp = 0;
-    SelectionCon.push_back(a);
-    RG *testSel = Exert::Selection(Rgs[0], SelectionCon);
-
-    Debug::outputRG(*testSel);
-    cout<<endl<<endl;
-    RG *testMix = Exert::Projection(*testSel, ProjectAttrs, ProjectPointers);
-    Debug::outputRG(*testMix);
-    cout<<endl<<endl;
+        cout<<endl<<endl;
 
 
-    vector<JoinCondition> JoinConditions;
-    JoinCondition jc = {"table1.name", "table2.name", 0}; // name equal
-    JoinConditions.push_back(jc);
-    RG *testJoin1 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
-    Debug::outputRG(*testJoin1);
-    cout<<endl<<endl;
+        vector<SelCondition>SelectionCon;
+        SelCondition a{};// .name == "Name1"
+        a.attr = "table1.name"; // name
+        a.value = "Name1";
+        a.cmp = 0;
+        SelectionCon.push_back(a);
+        RG *testSel = Exert::Selection(Rgs[0], SelectionCon);
+
+        Debug::outputRG(*testSel);
+        cout<<endl<<endl;
+        RG *testMix = Exert::Projection(*testSel, ProjectAttrs, ProjectPointers);
+        Debug::outputRG(*testMix);
+        cout<<endl<<endl;
 
 
-    JoinConditions.clear();
-    JoinConditions.push_back({"table1.id","table2.id",3}); // A.id >= B.id
-    RG *testJoin2 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
-    Debug::outputRG(*testJoin2);
-    cout<<endl<<endl;
+        vector<JoinCondition> JoinConditions;
+        JoinCondition jc = {"table1.name", "table2.name", 0}; // name equal
+        JoinConditions.push_back(jc);
+        RG *testJoin1 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
+        Debug::outputRG(*testJoin1);
+        cout<<endl<<endl;
 
-    Query :: Query();
-    Calc(0);
-    Output();
+
+        JoinConditions.clear();
+        JoinConditions.push_back({"table1.id","table2.id",3}); // A.id >= B.id
+        RG *testJoin2 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
+        Debug::outputRG(*testJoin2);
+        cout<<endl<<endl;
+
+        JoinConditions.clear();
+        JoinConditions.push_back({""})
+        Query :: Query();
+        Calc(0);
+        Output();
     return 0;
 }
