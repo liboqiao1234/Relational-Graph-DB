@@ -120,11 +120,10 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 
 1. BuildQueryGraph 维护PointerSet
 2. 增加反向指针，用来维护中间结果V、E表变化
-3. Tuple增加RG*指向父表
-4. 每一步需要Projection哪些Attr
-5. 实现Do
-6. Calc 中添加 projection 的相关计算
-7. 实现Join（Edge）
+3. 每一步需要Projection哪些Attr
+4. 实现Do
+5. Calc 中添加 projection 的相关计算
+6. 实现Join（Edge）
 8. Estimation
 
 ## 修改日志
@@ -144,6 +143,7 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 | ST 12.12 2:04   | 新增加了一些代码，只放在readme文件里面，后面可以添加。       |
 | JBY 12.12 2:46  | 完成了 BuildQueryGraph 中表的copy和改名，简化了询问的输入形式。完成对best的添加，实现了EmitCsgCmp的框架（仍缺少代价评估， |
 | UUQ 12.12 12:25 | 修改关于属性名中表名的问题，约定查询条件的attr字符串中包含"tableName." |
+| UUQ 12.12 14:16 | 初步实现edgeJoin，但因为InitGraph输入存在问题未能测试。      |
 ## 疑问
 
 1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？

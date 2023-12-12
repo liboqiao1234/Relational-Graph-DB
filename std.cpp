@@ -14,6 +14,14 @@ union Attr{
     char* str;
     long long number;
 };
+
+class CompareTuple {
+public:
+    bool operator()(const void *a, const void *b){
+        return a < b; // careful, compare address
+    }
+};
+
 class Tuple{
 public:
     int num1; // number of attribute
@@ -66,13 +74,13 @@ public:
     map <string, int> attr; // name -> line no.
     map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:str
     map <string, int> poi;
-    RG (string name = "EmptyName", int num1 = 0, int num2 = 0, int num3 = 0) {
+    explicit RG (string name = "EmptyName", int num1 = 0, int num2 = 0, int num3 = 0) {
         //table.resize(num3);
         attr.clear();
         poi.clear();
         zero.clear();
         for (int i = 0; i < num3; i++) {
-            table.push_back(Tuple(this,num1, num2));
+            table.emplace_back(this,num1, num2);
         }
         this->name = name;
         this->num1 = num1;
@@ -82,7 +90,7 @@ public:
 };
 
 void ChangeTableName(RG &now, string newName) {    
-    now.name = newName;
+    now.name = std::move(newName);
     now.attr.clear();
     for(int i = 0 ; i < now.zero.size(); i++) {
         string name = now.zero[i];
@@ -105,12 +113,12 @@ public:
 class JoinCondition{
 public:
     string attr1, attr2;
-    int cmp;
+    int cmp{};
 };
 
 class Step{
 public:
-    int S1, S2; // csg and cmp set
+    int S1{}, S2{}; // csg and cmp set
     vector<JoinCondition> conditions; // join condition
     // vector<string> attr; // attr which should be contained
 };
@@ -130,7 +138,7 @@ long long toNum(const char *value) {
     return res * flag;
 }
 
-string getAttrName(string AttrName) { // to split real AttrName from "TableName.AttrName"
+string getAttrName(const string& AttrName) { // to split real AttrName from "TableName.AttrName"
     int loc = AttrName.find('.');
     string res = AttrName.substr(loc + 1, AttrName.npos);
     return res;
@@ -166,7 +174,8 @@ namespace Init{
                     }
                 }
             }
-            Table[now.name] = Rgs.size(), Rgs.push_back(now);
+            Table[now.name] = Rgs.size();
+            Rgs.push_back(now);
         }
     }
 
@@ -177,7 +186,11 @@ namespace Init{
             cin >> name;
             int N, M; // number of nodes and edges
             cin >> N >> M;
-            RG V(name + "V", 1, 2, N), E_in(name + "E_in", 1, 1, M), E_out(name + "E_out", 1, 1, M);
+
+            RG V(name + "V", 1, 2, N);
+            RG E_in(name + "E_in", 1, 1, M);
+            RG E_out(name + "E_out", 1, 1, M);
+
             V.zero.push_back(V.name + ".id"), V.attr[V.name + ".id"] = 0, V.attr_type[0] = 0;
             for(int j = 0; j < N; j++) {
                 long long id;
@@ -187,7 +200,8 @@ namespace Init{
             E_in.zero.push_back(E_in.name + ".id"), E_in.attr[E_in.name + ".id"] = 0, E_in.attr_type[0] = 0;
             E_out.zero.push_back(E_out.name + ".id"), E_out.attr[E_out.name + ".id"] = 0, E_out.attr_type[0] = 0;
             for(int j = 0; j < M; j++) {
-                int x, y; long long id;
+                int x, y;
+                long long id;
                 cin >> x >> y >> id; 
                 E_in.table[j].attribute[0].number = id;
                 E_in.table[j].pointerSet[0].insert(&V.table[x]);
@@ -505,11 +519,15 @@ namespace Exert{
     bool CMP(const JoinCondition &condition, const Tuple &a, const Tuple &b, int lineNo1, int lineNo2) {
         // unfinished
         int cmpop = condition.cmp;
-        if(lineNo1 >= a.num1 && lineNo2>=b.num2) {
+        /*if(lineNo1 >= a.num1 && lineNo2>=b.num2) {
             // remain unfinished : edge join
-            cout << "Edge join, unfinished" << endl;
+            if (a.pointerSet[lineNo1 - a.num1].count((Tuple*)&b)==1
+                    || b.pointerSet[lineNo2 - b.num1].count((Tuple*)&a)==1 ){
+                return true;
+            }
+            //cout << "Edge join, unfinished" << endl;
             return false;
-        }
+        }*/
         Attr* av = new Attr(a.attribute[lineNo1]);
         Attr* bv = new Attr(b.attribute[lineNo2]);
         switch (cmpop) {
@@ -538,8 +556,10 @@ namespace Exert{
                 break;
             }
             case 4:{
-                cout << "edge join unfinished" <<endl;
-                return false;
+                if (a.pointerSet[lineNo1 - a.num1].count((Tuple*)&b)==1
+                    || b.pointerSet[lineNo2 - b.num1].count((Tuple*)&a)==1 ){
+                    return true;
+                }
                 break;
             }
             default:{
