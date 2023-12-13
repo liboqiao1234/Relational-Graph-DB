@@ -126,27 +126,27 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 
 请在每次提交时候在此处附上本次修改的详细内容
 
-| 修改人 时间            | 修改内容                                                    |
-|-------------------| ----------------------------------------------------------- |
-| UUQ 11.29 17:15   | 修改Projection传入内容<br>修改Tuple中attr存储逻辑为union{char *, long long}，并初步修改输入（char\*的输入可能有问题） |
-| UUQ 11.29 17:49   | 新增Condition类，新增toNumber函数，修改了部分由Union带来的错误 |
-| UUQ 12.5 21:20    | 修改了Condition类为两种Condition类，实现了Selection操作（CMP函数）<br>修复了char*的各种bug |
-| JBY 12.5 11:36    | JoinCondition 新添加代表 edge join 的 CMP, 更新了 Plan 中每一步 Step 的相关描述，增加了对于不同表中同名属性的处理，更改 attr 的表达形式 |
-| UUQ 12.11 17:50   | 正在修改查询条件由行号->属性名、属性名前增加表名带来的问题，目前还在修复。<br>实现了getAttrName函数，用来从一个"tableName.attrName"中分割出attrName |
-| UUQ 12.11 21:55   | 修复了Projection和Selection的bug                            |
-| UUQ 12.11 23:05   | 增加Tuple中**void* table**指向所属表，并相应修改所有执行函数的返回类型为**RG*** |
-| UUQ 12.12 0:04    | 完成了RGJoin，但产生了新的问题，见文档“**疑问**”第一、二、三条 |
-| ST 12.12 2:04     | 新增加了一些代码，只放在readme文件里面，后面可以添加。       |
-| JBY 12.12 2:46    | 完成了 BuildQueryGraph 中表的copy和改名，简化了询问的输入形式。完成对best的添加，实现了EmitCsgCmp的框架（仍缺少代价评估， |
-| UUQ 12.12 12:25   | 修改关于属性名中表名的问题，约定查询条件的attr字符串中包含"tableName." |
-| UUQ 12.12 14:16   | 初步实现edgeJoin，但因为InitGraph输入存在问题未能测试。      |
-| JBY 12.12 21:36   | 更改了 union ，实现，pointerSet 和 attribute 的合并，增加对 pointerSet 元素的命名，修复了 InitGrapgh 的 bug |
-| UUQ 12.13 1:50    | 修改pointerSet带来的影响，但由于传参可能产生拷贝构造等，edgejoin暂时无法成功匹配 |
-| UUQ 12.13 11:27   | 12.13 11:26 成功实现EdgeJoin，但输入逻辑存在疑问：现在的图输入疑似是默认id顺序输入？不论是点id还是边id |
-| JBY 12.13 14:13   | 初步添加了反向的指针                                        |
-| UUQ 12.13 15:40   | 完成了反向指针的维护，未测试                                 |
-| UUQ 12.13 16:38   | 修复反向指针维护的bug，已通过测试                            |
-| ST 12.13 17:02    | 完成了Calc,Output,Do,Selectcolumn函数，新增加顶层attr输入   |
+| 修改人 时间             | 修改内容                                                    |
+|--------------------| ----------------------------------------------------------- |
+| UUQ 11.29 17:15    | 修改Projection传入内容<br>修改Tuple中attr存储逻辑为union{char *, long long}，并初步修改输入（char\*的输入可能有问题） |
+| UUQ 11.29 17:49    | 新增Condition类，新增toNumber函数，修改了部分由Union带来的错误 |
+| UUQ 12.5 21:20     | 修改了Condition类为两种Condition类，实现了Selection操作（CMP函数）<br>修复了char*的各种bug |
+| JBY 12.5 11:36     | JoinCondition 新添加代表 edge join 的 CMP, 更新了 Plan 中每一步 Step 的相关描述，增加了对于不同表中同名属性的处理，更改 attr 的表达形式 |
+| UUQ 12.11 17:50    | 正在修改查询条件由行号->属性名、属性名前增加表名带来的问题，目前还在修复。<br>实现了getAttrName函数，用来从一个"tableName.attrName"中分割出attrName |
+| UUQ 12.11 21:55    | 修复了Projection和Selection的bug                            |
+| UUQ 12.11 23:05    | 增加Tuple中**void* table**指向所属表，并相应修改所有执行函数的返回类型为**RG*** |
+| UUQ 12.12 0:04     | 完成了RGJoin，但产生了新的问题，见文档“**疑问**”第一、二、三条 |
+| ST 12.12 2:04      | 新增加了一些代码，只放在readme文件里面，后面可以添加。       |
+| JBY 12.12 2:46     | 完成了 BuildQueryGraph 中表的copy和改名，简化了询问的输入形式。完成对best的添加，实现了EmitCsgCmp的框架（仍缺少代价评估， |
+| UUQ 12.12 12:25    | 修改关于属性名中表名的问题，约定查询条件的attr字符串中包含"tableName." |
+| UUQ 12.12 14:16    | 初步实现edgeJoin，但因为InitGraph输入存在问题未能测试。      |
+| JBY 12.12 21:36    | 更改了 union ，实现，pointerSet 和 attribute 的合并，增加对 pointerSet 元素的命名，修复了 InitGrapgh 的 bug |
+| UUQ 12.13 1:50     | 修改pointerSet带来的影响，但由于传参可能产生拷贝构造等，edgejoin暂时无法成功匹配 |
+| UUQ 12.13 11:27    | 12.13 11:26 成功实现EdgeJoin，但输入逻辑存在疑问：现在的图输入疑似是默认id顺序输入？不论是点id还是边id |
+| JBY 12.13 14:13    | 初步添加了反向的指针                                        |
+| UUQ 12.13 15:40    | 完成了反向指针的维护，未测试                                 |
+| UUQ 12.13 16:38    | 修复反向指针维护的bug，已通过测试                            |
+| ST 12.13 17:02     | 完成了Calc,Output,Do,Selectcolumn函数，新增加顶层attr输入   |
 ## 疑问
 
 1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？
