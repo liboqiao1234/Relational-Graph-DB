@@ -28,6 +28,7 @@ public:
     int num1; // number of attribute
     void* table; // use  (RG*) to convert!!
     vector<Attr> attribute;
+    set<Attr*> pointerFrom;
 
     explicit Tuple (void* fa, int num1 = 0) {
         table = fa;
@@ -35,6 +36,7 @@ public:
         for (int i = 0; i < num1; i++) {
             attribute[i].number = 0;
         }
+        pointerFrom.clear();
         this->num1 = num1;
     }
     Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
@@ -198,13 +200,13 @@ namespace Init{
                 if (E_in.table[j].attribute[1].pointerSet == nullptr) {
                     E_in.table[j].attribute[1].pointerSet = new set<Tuple*>;
                 }
+                ((set<Tuple*>*)(E_in.table[j].attribute[1].pointerSet))->insert(&(V.table[x]));
+                V.table[x].pointerFrom.insert(&(E_in.table[j].attribute[1]));
                 if (V.table[y].attribute[1].pointerSet == nullptr) {
                     V.table[y].attribute[1].pointerSet = new set<Tuple*>; // in
                 }
-                //auto tmp  = &E_in.table[j];
-                ((set<Tuple*>*)(E_in.table[j].attribute[1].pointerSet))->insert(&(V.table[x]));
-                auto tmp = (set<Tuple*>*)(V.table[y].attribute[2].pointerSet);
                 ((set<Tuple*>*)(V.table[y].attribute[1].pointerSet))->insert(&(E_in.table[j]));
+                E_in.table[j].pointerFrom.insert(&(V.table[y].attribute[1]));
 
                 E_out.table[j].attribute[0].number = id;
 
@@ -212,10 +214,12 @@ namespace Init{
                     E_out.table[j].attribute[1].pointerSet = new set<Tuple*>;
                 }
                 ((set<Tuple*>*)(E_out.table[j].attribute[1].pointerSet))->insert(&(V.table[y]));
+                V.table[y].pointerFrom.insert(&(E_out.table[j].attribute[1]));
                 if (((set<Tuple*>*)(V.table[x].attribute[2].pointerSet)) == nullptr) {
                     V.table[x].attribute[2].pointerSet = new set<Tuple*>;
                 }
                 ((set<Tuple*>*)(V.table[x].attribute[2].pointerSet))->insert(&(E_out.table[j]));
+                E_out.table[j].pointerFrom.insert(&(V.table[x].attribute[2]));
             }
             Table[V.name] = Rgs.size(), Rgs.emplace_back(std::move(V));
             Table[E_in.name] = Rgs.size(), Rgs.emplace_back(std::move(E_in));
