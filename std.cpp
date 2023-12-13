@@ -120,12 +120,12 @@ string getAttrName(const string& AttrName) { // to split real AttrName from "Tab
 }
 
 void updatePointer(Tuple *a, Tuple * ori) {
-    for(auto i:a->pointerFrom) {
+    for(auto &i:ori->pointerFrom) {
 
         if((set<Tuple*>*)(i->pointerSet) == nullptr) {
-            (i->pointerSet) = new set<Tuple*>*;
+            (i->pointerSet) = new set<Tuple*>;
         }
-        auto ps = (set<Tuple*>*)(i->pointerSet);
+        set<Tuple*>* ps = (set<Tuple*>*)(i->pointerSet);
         ps->erase(ori);
         ps->insert(a);
     }
@@ -729,12 +729,13 @@ namespace Debug {
         Tuple *b = new Tuple(test, 2);
         b->attribute[0].number = 234;
         Tuple *c = new Tuple(test, 2);
-        (a->attribute[1].pointerSet) = new set<Tuple*>*();
+        (a->attribute[1].pointerSet) = new set<Tuple*>();
         auto ss = ((set<Tuple*>*)(a->attribute[1].pointerSet));
         cout << b<<endl;
         ss->insert(b); // 1:out
-        b->pointerFrom.insert((Attr*)&(a->attribute));
+        b->pointerFrom.insert((Attr*)&(a->attribute[1]));
         updatePointer(c,b);
+        cout<<"AtoC? :" <<((set<Tuple*>*)(a->attribute[1].pointerSet))->count(c)<<endl;
     }
     void outputRG(RG &a) {
         int num1 = a.num1; // attr
@@ -765,6 +766,7 @@ namespace Debug {
 
 int main() {
     // setbuf(stdout, NULL); // for CLion user UUQ
+    //Debug::testUpdatePointer();
     Init :: Init();
     vector<string>ProjectAttrs;
     ProjectAttrs.emplace_back("table1.name");// means "name"
