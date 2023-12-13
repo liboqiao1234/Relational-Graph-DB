@@ -216,11 +216,10 @@ namespace Init{
                     V.table[x].attribute[2].pointerSet = new set<Tuple*>;
                 }
                 ((set<Tuple*>*)(V.table[x].attribute[2].pointerSet))->insert(&(E_out.table[j]));
-                //cout<< "test::"<<((set<Tuple*>*)(V.table[x].attribute[2].pointerSet))->count(&(E_out.table[j]))<<endl;
             }
-            Table[V.name] = Rgs.size(), Rgs.push_back(V);
-            Table[E_in.name] = Rgs.size(), Rgs.push_back(E_in);
-            Table[E_out.name] = Rgs.size(), Rgs.push_back(E_out);
+            Table[V.name] = Rgs.size(), Rgs.emplace_back(std::move(V));
+            Table[E_in.name] = Rgs.size(), Rgs.emplace_back(std::move(E_in));
+            Table[E_out.name] = Rgs.size(), Rgs.emplace_back(std::move(E_out));
         }
     }
 
@@ -574,11 +573,11 @@ namespace Exert{
                         return true;
                     }
                 }
-                if (b.attribute[lineNo2].pointerSet != nullptr) {
-                    if ((*((set<Tuple*>*)(b.attribute[lineNo2].pointerSet))).count((Tuple*)&a) == 1 ) {
-                        return true;
-                    }
-                }
+//                if (b.attribute[lineNo2].pointerSet != nullptr) {
+//                    if ((*((set<Tuple*>*)(b.attribute[lineNo2].pointerSet))).count((Tuple*)&a) == 1 ) {
+//                        return true;
+//                    }
+//                }
 
                 break;
             }
@@ -736,7 +735,6 @@ namespace Debug {
 };
 
 int main() {
-    //Init::InitGraph();
     // setbuf(stdout, NULL); // for CLion user UUQ
     Init :: Init();
     vector<string>ProjectAttrs;
@@ -786,7 +784,6 @@ int main() {
     RG *testMix = Exert::Projection(*testSel, ProjectAttrs);
     Debug::outputRG(*testMix);
     cout<<endl<<endl;
-
 
     vector<JoinCondition> JoinConditions;
     JoinCondition jc = {"table1.name", "table2.name", 0}; // name equal
