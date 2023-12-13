@@ -543,8 +543,24 @@ table1.name
 };
 
 namespace Exert{
-    RG* Projection(RG &R, vector<string> attrs) { // if const R, can't access the R.attr[]
+    RG* Projection(RG &R, vector<string> attrs1) { // if const R, can't access the R.attr[]
         // attrs include the RGName!!!!!!!!!!!!!! f**k...
+        vector<string> attrs;
+        int numk = 0;
+        int temp = R.num3;
+        int temp1 = attrs1.size();
+        for (int i=0;i<temp1;i++) {
+            int flag = 0;
+            for (int j=0;j<temp;j++) {
+                if(R.zero[j] == attrs1[i]) {
+                    flag = 1;
+                    break;
+                }
+            }
+            if(flag==1) {
+                attrs[numk++] = attrs1[i];
+            }
+        }
         tmpTableCnt++;
         int num1 = attrs.size(); // num1: attr
         int num3 = R.num3; // tuple num
@@ -953,17 +969,17 @@ int main() {
     cout << Query :: best << '\n';
     vector<string> readattr;
     readattr.emplace_back("table1.name");
-    // string input;
-    // getline(cin, input);  // 从控制台读入一行输入
-    // istringstream iss(input);
-    // string token;
-    // while (getline(iss, token, ' ')) {
-    //     readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
-    // }
+     string input;
+     getline(cin, input);  // 从控制台读入一行输入
+     istringstream iss(input);
+     string token;
+     while (getline(iss, token, ' ')) {
+         readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
+     }
 
-    // RG result = Calc(Query::best, readattr);//我从这儿开始改
-    // Debug::outputRG(result);
-    // Output(result);
+     RG result = Calc(Query::best, readattr);//我从这儿开始改
+     Debug::outputRG(result);
+     Output(result);
 
     return 0;
 }

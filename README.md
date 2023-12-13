@@ -154,6 +154,7 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions); // condition cmp见
 | JBY 12.13 18:01 | 更改了图数据一开始的存储方式，修复了 BuildQueryGraph 中创造初始表的 Bug |
 | JBY 12.13 20:14 | 修复了 DP 算法的 bug                                         |
 | UUQ 12.13 20:32 | 维护了文档和源码，删去了不必要的注释，将main中冗长的测试移入Debug:: |
+| ST 12.13 21:18  | 增加了Projection操作前的属性过滤                             |
 ## 疑问
 1. 
 
