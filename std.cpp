@@ -808,3 +808,28 @@ int main() {
     Output();
     return 0;
 }
+/*
+2
+table1
+2 3
+id 0
+name 1
+1 Name
+2 Name1
+3 345
+table2
+2 3
+id 0
+name 1
+321 Name
+213 Name1
+3 3456
+
+1
+graph1
+3 2
+1 2 3
+1 2 0
+2 3 1
+
+ */
