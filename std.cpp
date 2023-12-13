@@ -550,11 +550,9 @@ namespace Exert{
         int num3 = R.num3; // tuple num
         RG* res = new RG("__tmpTable" + to_string(tmpTableCnt), num1, num3); // Name!!!
         vector <int> selected_attr;
-        //, selected_poi;
         string attr_name;
         int line_no;
         for (int i = 0; i < num1; i++) {
-            // Pointer remains unsolved. How to define RG.attr ?
             attr_name = attrs[i];
             line_no = R.attr[attrs[i]];
             res->attr[attr_name] = i;
@@ -576,7 +574,6 @@ namespace Exert{
 
     bool CMP(const SelCondition &condition, const Tuple &a, int lineNo) { // whether the tuple fits the condition.
         int cmpop = condition.cmp;
-        //int lineNo = condition.attr;
         if (lineNo >= a.num1) {
             cout << "Select the pointerSet, not supported yet." << endl;
             return false;
@@ -619,17 +616,8 @@ namespace Exert{
     bool CMP(const JoinCondition &condition, Tuple *aa, Tuple *bb, int lineNo1, int lineNo2) {
         auto &a = *aa;
         auto &b = *bb;
-        //cout << "Inside a.table[i] addr" << &a<< " b: " << &b<<endl;
         int cmpop = condition.cmp;
-        /*if(lineNo1 >= a.num1 && lineNo2>=b.num2) {
-            // remain unfinished : edge join
-            if (a.pointerSet[lineNo1 - a.num1].count((Tuple*)&b)==1
-                    || b.pointerSet[lineNo2 - b.num1].count((Tuple*)&a)==1 ){
-                return true;
-            }
-            //cout << "Edge join, unfinished" << endl;
-            return false;
-        }*/
+
         Attr* av = new Attr(a.attribute[lineNo1]);
         Attr* bv = new Attr(b.attribute[lineNo2]);
         switch (cmpop) {
@@ -663,12 +651,6 @@ namespace Exert{
                         return true;
                     }
                 }
-//                if (b.attribute[lineNo2].pointerSet != nullptr) {
-//                    if ((*((set<Tuple*>*)(b.attribute[lineNo2].pointerSet))).count((Tuple*)&a) == 1 ) {
-//                        return true;
-//                    }
-//                }
-
                 break;
             }
             default:{
@@ -686,18 +668,8 @@ namespace Exert{
         int line_no;
         res->zero = R.zero;
         res->attr = R.attr;
-//        for (int i = 0; i < num1; i++) {
-//            AttrName = name + '.' + getAttrName(R.zero[i]); // split .?
-//            res->zero.push_back(AttrName);
-//            res->attr[AttrName] = i;
-//        }
-//        for (int i = 0; i < num2; i++) {
-//            AttrName = name + '.' + getAttrName(R.zero[i+num1]);
-//            res->zero.push_back(AttrName);
-//            res->poi[AttrName] = i+num1;
-//        }
-        res->attr_type = R.attr_type; // because the line_no doesn't change.
-                             // need to be rewrite!!!!!!!!
+        res->attr_type = R.attr_type;
+
         // Exert selection.
         int tot = R.num3;
         int flag = 1;
@@ -742,16 +714,6 @@ namespace Exert{
             res -> attr_type[i + a.num1] = b.attr_type[i];
             res -> zero.push_back(AttrName);
         }
-//        for (int i = 0; i < a.num2; i++){
-//            AttrName = a.zero[i+a.num1];
-//            res -> poi[AttrName] = i;
-//            res -> zero.push_back(AttrName);
-//        }
-//        for (int i = 0; i < b.num2; i++){
-//            AttrName = b.zero[i+b.num1];
-//            res -> poi[AttrName] = i + a.num2;
-//            res -> zero.push_back(AttrName);
-//        }
         // data maintain
         int flag = 1;
         for (int i = 0; i < a.num3; i++) {
@@ -778,10 +740,6 @@ namespace Exert{
         }
 
         res->num3 = tot;
-        return res;
-    }
-    RG* EdgeJoin(RG &a, RG &b/*, vector<Condition>conditions*/) {
-        RG *res = new RG();
         return res;
     }
 };
@@ -883,11 +841,11 @@ void Output(RG a) {//对一个表进行输出
 namespace Debug {
     void testUpdatePointer() {
         RG *test = new RG("testRG", 123, 1);
-        Tuple *a = new Tuple(test, 2);
+        auto *a = new Tuple(test, 2);
         a->attribute[0].number = 123;
-        Tuple *b = new Tuple(test, 2);
+        auto *b = new Tuple(test, 2);
         b->attribute[0].number = 234;
-        Tuple *c = new Tuple(test, 2);
+        auto *c = new Tuple(test, 2);
         (a->attribute[1].pointerSet) = new set<Tuple*>();
         auto ss = ((set<Tuple*>*)(a->attribute[1].pointerSet));
         cout << b<<endl;
@@ -921,83 +879,80 @@ namespace Debug {
             cout << endl;
         }
     }
+    void testExert(){
+        vector<string>ProjectAttrs;
+        ProjectAttrs.emplace_back("table1.name");// means "name"
+        ProjectAttrs.emplace_back("table1.id");// means "id"
+        /*test examples
+        2
+        table1
+        2 3
+        id 0
+        name 1
+        1 Name
+        2 Name1
+        3 345
+        table2
+        2 3
+        id 0
+        name 1
+        321 Name
+        213 Name1
+        3 3456
+
+        1
+        graph1
+        3 2
+        1 2 3
+        0 1 0
+        1 2 1
+        */
+        //vector<string>ProjectPointers;
+        RG *test = Exert ::Projection(Rgs[0], ProjectAttrs);
+        Debug::outputRG(*test);
+
+        cout<<endl<<endl;
+
+
+        vector<SelCondition>SelectionCon;
+        SelCondition a{};// .name == "Name1"
+        a.attr = "table1.name"; // name
+        a.value = "Name1";
+        a.cmp = 0;
+        SelectionCon.push_back(a);
+        RG *testSel = Exert::Selection(Rgs[0], SelectionCon);
+
+        Debug::outputRG(*testSel);
+        cout<<endl<<endl;
+        RG *testMix = Exert::Projection(*testSel, ProjectAttrs);
+        Debug::outputRG(*testMix);
+        cout<<endl<<endl;
+
+        vector<JoinCondition> JoinConditions;
+        JoinCondition jc = {"table1.name", "table2.name", 0}; // name equal
+        JoinConditions.push_back(jc);
+        RG *testJoin1 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
+        Debug::outputRG(*testJoin1);
+        cout<<endl<<endl;
+
+
+        JoinConditions.clear();
+        JoinConditions.push_back({"table1.id","table2.id",3}); // A.id >= B.id
+        RG *testJoin2 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
+        Debug::outputRG(*testJoin2);
+        cout<<endl<<endl;
+    }
 };
 
 int main() {
     // setbuf(stdout, NULL); // for CLion user UUQ
-    //Debug::testUpdatePointer();
     Init :: Init();
-    vector<string>ProjectAttrs;
-    ProjectAttrs.emplace_back("table1.name");// means "name"
-    ProjectAttrs.emplace_back("table1.id");// means "id"
-    /*test examples
-    2
-    table1
-    2 3
-    id 0
-    name 1
-    1 Name
-    2 Name1
-    3 345
-    table2
-    2 3
-    id 0
-    name 1
-    321 Name
-    213 Name1
-    3 3456
-
-    1
-    graph1
-    3 2
-    1 2 3
-    0 1 0
-    1 2 1
-    */
-    //vector<string>ProjectPointers;
-    RG *test = Exert ::Projection(Rgs[0], ProjectAttrs);
-    Debug::outputRG(*test);
-
-    cout<<endl<<endl;
-
-
-    vector<SelCondition>SelectionCon;
-    SelCondition a{};// .name == "Name1"
-    a.attr = "table1.name"; // name
-    a.value = "Name1";
-    a.cmp = 0;
-    SelectionCon.push_back(a);
-    RG *testSel = Exert::Selection(Rgs[0], SelectionCon);
-
-    Debug::outputRG(*testSel);
-    cout<<endl<<endl;
-    RG *testMix = Exert::Projection(*testSel, ProjectAttrs);
-    Debug::outputRG(*testMix);
-    cout<<endl<<endl;
-
-    vector<JoinCondition> JoinConditions;
-    JoinCondition jc = {"table1.name", "table2.name", 0}; // name equal
-    JoinConditions.push_back(jc);
-    RG *testJoin1 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
-    Debug::outputRG(*testJoin1);
-    cout<<endl<<endl;
-
-
-    JoinConditions.clear();
-    JoinConditions.push_back({"table1.id","table2.id",3}); // A.id >= B.id
-    RG *testJoin2 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
-    Debug::outputRG(*testJoin2);
-    cout<<endl<<endl;
-
-    // JoinConditions.clear();
-    // JoinConditions.push_back({"graph1V.out", "graph1E_out.dst", 4});
-    // RG *testEdgeJ = Exert::RGJoin(Rgs[2],Rgs[4],JoinConditions);
-    // Debug::outputRG(*testEdgeJ);
+    //Debug::testExert();
     Query :: Query();
 
     cout << Query :: best << '\n';
     vector<string> readattr;
-    readattr.push_back("table1.name");
+    readattr.emplace_back("table1.name");
     // string input;
     // getline(cin, input);  // 从控制台读入一行输入
     // istringstream iss(input);
