@@ -9,6 +9,7 @@ int m; // number of graph
 int tmpTableCnt; // num of tmpTable
 
 map<string, int> Table; // name -> id
+map<string, int> GraphId;
 
 union Attr{
     char* str;
@@ -42,6 +43,15 @@ public:
     Tuple (void *fa, Tuple &a, Tuple &b);
 };
 
+class Graph{
+public:
+    int N, M;
+    vector<long long> Node;
+    vector<pair<pair<int, int>, long long>> Edge;
+};
+
+vector<Graph> Graphs;
+
 class RG{
 public:
     int num1; // number of attribute
@@ -63,18 +73,6 @@ public:
         this->num3 = num3;
     }
 };
-
-void ChangeTableName(RG &now, string newName) {    
-    now.name = std::move(newName);
-    now.attr.clear();
-    for(int i = 0 ; i < now.zero.size(); i++) {
-        string name = now.zero[i];
-        int number = now.attr[name];
-        now.attr.erase(name);
-        name = now.name + name.substr(name.find_first_of('.') + 1, name.size());
-        now.zero[i] = name, now.attr[name] = number;
-    }
-}
 
 vector<RG> Rgs;
 
@@ -187,61 +185,63 @@ namespace Init{
         for(int i = 0; i < m; i++) {
             string name;
             cin >> name;
-            int N, M; // number of nodes and edges
-            cin >> N >> M;
+            GraphId[name] = i;
+            Graph now;
+            cin >> now.N >> now.M;
+            now.Node.resize(now.N);
+            // RG V(name + "V", 3, N);
+            // RG E_in(name + "E_in", 2, M);
+            // RG E_out(name + "E_out", 2, M);
 
-            RG V(name + "V", 3, N);
-            RG E_in(name + "E_in", 2, M);
-            RG E_out(name + "E_out", 2, M);
-
-            V.zero.push_back(V.name + ".id"), V.attr[V.name + ".id"] = 0, V.attr_type[0] = 0;
-            V.zero.push_back(V.name + ".in"), V.attr[V.name + ".in"] = 1, V.attr_type[1] = 2;
-            V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
-            for(int j = 0; j < N; j++) {
-                long long id;
-                cin >> id;
-                V.table[j].attribute[0].number = id;
+            // V.zero.push_back(V.name + ".id"), V.attr[V.name + ".id"] = 0, V.attr_type[0] = 0;
+            // V.zero.push_back(V.name + ".in"), V.attr[V.name + ".in"] = 1, V.attr_type[1] = 2;
+            // V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
+            for(int j = 0; j < now.N; j++) {
+                cin >> now.Node[j];
+                // V.table[j].attribute[0].number = id;
             }
-            E_in.zero.push_back(E_in.name + ".id"), E_in.attr[E_in.name + ".id"] = 0, E_in.attr_type[0] = 0;
-            E_in.zero.push_back(E_in.name + ".src"), E_in.attr[E_in.name + ".src"] = 1, E_in.attr_type[1] = 2;
-            E_out.zero.push_back(E_out.name + ".id"), E_out.attr[E_out.name + ".id"] = 0, E_out.attr_type[0] = 0;
-            E_out.zero.push_back(E_out.name + ".dst"), E_out.attr[E_out.name + ".dst"] = 1, E_out.attr_type[1] = 2;
-            for(int j = 0; j < M; j++) {
+            // E_in.zero.push_back(E_in.name + ".id"), E_in.attr[E_in.name + ".id"] = 0, E_in.attr_type[0] = 0;
+            // E_in.zero.push_back(E_in.name + ".src"), E_in.attr[E_in.name + ".src"] = 1, E_in.attr_type[1] = 2;
+            // E_out.zero.push_back(E_out.name + ".id"), E_out.attr[E_out.name + ".id"] = 0, E_out.attr_type[0] = 0;
+            // E_out.zero.push_back(E_out.name + ".dst"), E_out.attr[E_out.name + ".dst"] = 1, E_out.attr_type[1] = 2;
+            for(int j = 0; j < now.M; j++) {
                 int x, y;
                 long long id;
                 cin >> x >> y >> id;
-                y--;
                 x--;
-                E_in.table[j].attribute[0].number = id;
-                //void * tmp = E_in.table[j].attribute[1].pointerSet;
+                y--;
+                now.Edge.push_back(make_pair(make_pair(x, y), id));
+                // E_in.table[j].attribute[0].number = id;
+                // //void * tmp = E_in.table[j].attribute[1].pointerSet;
 
-                if (E_in.table[j].attribute[1].pointerSet == nullptr) {
-                    E_in.table[j].attribute[1].pointerSet = new set<Tuple*>;
-                }
-                ((set<Tuple*>*)(E_in.table[j].attribute[1].pointerSet))->insert(&(V.table[x]));
-                V.table[x].pointerFrom.insert(&(E_in.table[j].attribute[1]));
-                if (V.table[y].attribute[1].pointerSet == nullptr) {
-                    V.table[y].attribute[1].pointerSet = new set<Tuple*>; // in
-                }
-                ((set<Tuple*>*)(V.table[y].attribute[1].pointerSet))->insert(&(E_in.table[j]));
-                E_in.table[j].pointerFrom.insert(&(V.table[y].attribute[1]));
+                // if (E_in.table[j].attribute[1].pointerSet == nullptr) {
+                //     E_in.table[j].attribute[1].pointerSet = new set<Tuple*>;
+                // }
+                // ((set<Tuple*>*)(E_in.table[j].attribute[1].pointerSet))->insert(&(V.table[x]));
+                // V.table[x].pointerFrom.insert(&(E_in.table[j].attribute[1]));
+                // if (V.table[y].attribute[1].pointerSet == nullptr) {
+                //     V.table[y].attribute[1].pointerSet = new set<Tuple*>; // in
+                // }
+                // ((set<Tuple*>*)(V.table[y].attribute[1].pointerSet))->insert(&(E_in.table[j]));
+                // E_in.table[j].pointerFrom.insert(&(V.table[y].attribute[1]));
 
-                E_out.table[j].attribute[0].number = id;
+                // E_out.table[j].attribute[0].number = id;
 
-                if (E_out.table[j].attribute[1].pointerSet == nullptr) {
-                    E_out.table[j].attribute[1].pointerSet = new set<Tuple*>;
-                }
-                ((set<Tuple*>*)(E_out.table[j].attribute[1].pointerSet))->insert(&(V.table[y]));
-                V.table[y].pointerFrom.insert(&(E_out.table[j].attribute[1]));
-                if (((set<Tuple*>*)(V.table[x].attribute[2].pointerSet)) == nullptr) {
-                    V.table[x].attribute[2].pointerSet = new set<Tuple*>;
-                }
-                ((set<Tuple*>*)(V.table[x].attribute[2].pointerSet))->insert(&(E_out.table[j]));
-                E_out.table[j].pointerFrom.insert(&(V.table[x].attribute[2]));
+                // if (E_out.table[j].attribute[1].pointerSet == nullptr) {
+                //     E_out.table[j].attribute[1].pointerSet = new set<Tuple*>;
+                // }
+                // ((set<Tuple*>*)(E_out.table[j].attribute[1].pointerSet))->insert(&(V.table[y]));
+                // V.table[y].pointerFrom.insert(&(E_out.table[j].attribute[1]));
+                // if (((set<Tuple*>*)(V.table[x].attribute[2].pointerSet)) == nullptr) {
+                //     V.table[x].attribute[2].pointerSet = new set<Tuple*>;
+                // }
+                // ((set<Tuple*>*)(V.table[x].attribute[2].pointerSet))->insert(&(E_out.table[j]));
+                // E_out.table[j].pointerFrom.insert(&(V.table[x].attribute[2]));
             }
-            Table[V.name] = Rgs.size(), Rgs.emplace_back(std::move(V));
-            Table[E_in.name] = Rgs.size(), Rgs.emplace_back(std::move(E_in));
-            Table[E_out.name] = Rgs.size(), Rgs.emplace_back(std::move(E_out));
+            Graphs.push_back(now);
+            // Table[V.name] = Rgs.size(), Rgs.emplace_back(std::move(V));
+            // Table[E_in.name] = Rgs.size(), Rgs.emplace_back(std::move(E_in));
+            // Table[E_out.name] = Rgs.size(), Rgs.emplace_back(std::move(E_out));
         }
     }
 
@@ -268,8 +268,6 @@ namespace Query{
         return 0;
     }
 
-
-
     void BuildQueryGraph() {
         tot = 0, cnt = 0;
         // RgtoId.clear(), IdtoRg.clear();
@@ -278,12 +276,19 @@ namespace Query{
         if(type == 1) {
             // build graphMatch
             int graphN, graphM, graphId; 
-            cin >> graphId >> graphN >> graphM;
+            string graphName;
+            cin >> graphName >> graphN >> graphM;
+            graphId = GraphId[graphName];
+            Graph g = Graphs[graphId];
+            int N = g.N, M = g.M;
             for(int i = 0; i < graphN; i++) {
-                RG now = Rgs[n + 3 * graphId];
-                ChangeTableName(now, "V" + to_string(i));
+                RG V = RG("V" + to_string(i), 3, N);
+                V.zero.push_back(V.name + ".id"), V.attr[V.name + ".id"] = 0, V.attr_type[0] = 0;
+                V.zero.push_back(V.name + ".in"), V.attr[V.name + ".in"] = 1, V.attr_type[1] = 2;
+                V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
+                for(int j = 0; j < N; j++) V.table[j].attribute[0].number = g.Node[j];
                 TableId["V" + to_string(i)] = tot++;
-                G.emplace_back(), tables.push_back(now), checkId.push_back(cnt++);
+                G.emplace_back(), tables.push_back(V), checkId.push_back(cnt++);
             }
             for(int i = 0; i < graphM; i++) {
                 int x, y;
@@ -291,10 +296,22 @@ namespace Query{
                 JoinCondition condition1, condition2;
                 condition1.cmp = condition2 .cmp = 4;
 
-                RG now = Rgs[n + 3 * graphId + 1];
-                ChangeTableName(now, "E_rev" + to_string(i));
+                RG E_rev = RG("E_rev" + to_string(i), 2, M);
+                
+                E_rev.zero.push_back(E_rev.name + ".id"), E_rev.attr[E_rev.name + ".id"] = 0, E_rev.attr_type[0] = 0;
+                E_rev.zero.push_back(E_rev.name + ".src"), E_rev.attr[E_rev.name + ".src"] = 1, E_rev.attr_type[1] = 2;
                 TableId["E_rev" + to_string(i)] = tot;
-                G.emplace_back(), tables.push_back(now), checkId.push_back(cnt);
+                for(int j = 0; j < M; j++) {
+                    int u = g.Edge[j].first.first;
+                    int v = g.Edge[j].first.second;
+                    long long id = g.Edge[j].second;
+                    E_rev.table[j].attribute[0].number = id;
+                    ((set<Tuple*>*)E_rev.table[j].attribute[1].pointerSet) -> insert(&tables[x].table[u]);
+                    tables[x].table[u].pointerFrom.insert(&E_rev.table[j].attribute[1]);
+                    ((set<Tuple*>*)tables[y].table[v].attribute[1].pointerSet) -> insert(&E_rev.table[j]);
+                    E_rev.table[j].pointerFrom.insert(&tables[y].table[v].attribute[1]);
+                }
+                G.emplace_back(), tables.push_back(E_rev), checkId.push_back(cnt);
 
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
                 condition2.attr2 = "V" + to_string(y) + ".in";
@@ -302,10 +319,19 @@ namespace Query{
                 G[tot].push_back(Edge(x, condition1));
                 tot++;
 
-                now = Rgs[n + 3 * graphId + 2];
-                ChangeTableName(now, "E_ord" + to_string(i));
+                RG E_ord = RG("E_ord" + to_string(i), 2, M);
                 TableId["E_ord" + to_string(i)] = tot;
-                G.emplace_back(), tables.push_back(now), checkId.push_back(cnt++);
+                for(int j = 0; j < M; j++) {
+                    int u = g.Edge[j].first.first;
+                    int v = g.Edge[j].first.second;
+                    long long id = g.Edge[j].second;
+                    E_ord.table[j].attribute[0].number = id;
+                    ((set<Tuple*>*)E_ord.table[j].attribute[1].pointerSet) -> insert(&tables[y].table[v]);
+                    tables[y].table[v].pointerFrom.insert(&E_ord.table[j].attribute[1]);
+                    ((set<Tuple*>*)tables[x].table[u].attribute[2].pointerSet) -> insert(&E_ord.table[j]);
+                    E_rev.table[j].pointerFrom.insert(&tables[x].table[u].attribute[2]);
+                }
+                G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
 
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
                 condition2.attr2 = "V" + to_string(x) + ".out";
@@ -318,7 +344,7 @@ namespace Query{
         cin >> N;
         for(int i = 1; i <= N; i++) {
             string attr1, attr2;
-            int x, y, a, b, cmp;
+            int x, y, cmp;
             cin >> attr1 >> attr2 >> cmp;
             string tableName1 = attr1.substr(0, attr1.find_first_of('.'));
             string tableName2 = attr2.substr(0, attr2.find_first_of('.'));
@@ -412,8 +438,8 @@ namespace Query{
     void EmitCsg(int S1) {
         int X = S1 | B(Min(S1));
         int N = Neighbor(S1, X);
-        for(int i = tot - 1; i >= 0; i--) {
-            int S2 = (1 << i);
+        for(int i = tot - 1; i>= 0; i--) if(N >> i & 1) {
+            int S2 = 1 << i;
             EmitCsgCmp(S1, S2);
             EnumerateCmpRec(S1, S2, X);
         }
@@ -709,25 +735,6 @@ namespace Exert{
 };
 
 RG Selectcolumn(RG a, vector<string> b) {
-    /*vector<string> b1;
-    vector<string> b2;
-    int a1 = a.num1;//非指针的数量
-    int a2 = a.zero.size() - a1;//指针的数量
-    int k1 = 0;
-    int k2 = 0;
-    vector<string> c = a.zero;
-    for (int i=0;i<b.size();i++) {
-        for (int j=0;j<a1;j++) {
-            if (b[i] == c[j]) {//是普通类型
-                b1[k1++] = b[i];
-            }
-        }
-        for (int j=a1;j<a1+a2;j++) {
-            if (b[i] == c[j]) {//是指针类型
-                b2[k2++] = b[i];
-            }
-        }
-    }*/
     RG* result = Exert::Projection(a, b);
     return *result;
 }

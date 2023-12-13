@@ -147,8 +147,8 @@ RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions);
 | UUQ 12.13 15:40  | 完成了反向指针的维护，未测试                                 |
 | UUQ 12.13 16:38  | 修复反向指针维护的bug，已通过测试                            |
 | ST 12.13 17:02   | 完成了Calc,Output,Do,Selectcolumn函数，新增加顶层attr输入   |
+| JBY 12.13 18:01  | 更改了图数据一开始的存储方式，修复了 BuildQueryGraph 中创造初始表的 Bug|
 ## 疑问
-
 1. edge join是否有两种？  是判断某一个指针set中是否包含另一个元组即可？
 
 ## 备注
