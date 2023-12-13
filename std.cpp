@@ -708,17 +708,117 @@ namespace Exert{
     }
 };
 
-RG Calc(int S) {
-    return RG(); // for temporary debug
-    Step now = Query::Plan[S];
-    int S1 = now.S1, S2 = now.S2;
-    //vector<Condition> condition = now.conditions;
-    //return Do(Calc(S1), Calc(S2), condition, attr);
-
+RG Selectcolumn(RG a, vector<string> b) {
+    /*vector<string> b1;
+    vector<string> b2;
+    int a1 = a.num1;//非指针的数量
+    int a2 = a.zero.size() - a1;//指针的数量
+    int k1 = 0;
+    int k2 = 0;
+    vector<string> c = a.zero;
+    for (int i=0;i<b.size();i++) {
+        for (int j=0;j<a1;j++) {
+            if (b[i] == c[j]) {//是普通类型
+                b1[k1++] = b[i];
+            }
+        }
+        for (int j=a1;j<a1+a2;j++) {
+            if (b[i] == c[j]) {//是指针类型
+                b2[k2++] = b[i];
+            }
+        }
+    }*/
+    RG* result = Exert::Projection(a, b);
+    return *result;
 }
 
-void Output() {
+RG Do(RG a, RG b, vector<JoinCondition> c, vector<string> d) {
+    RG* temp = Exert::RGJoin(a, b, c);
+    RG temp1 = *temp;
+    RG result = Selectcolumn(temp1, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
+    return result;
+}
 
+//从这儿开始改
+RG Calc(int S, vector<string> attr) {
+
+    /*class Step{
+    public:
+        int S1, S2; // csg and cmp set
+        vector<JoinCondition> conditions; // join condition
+        vector<string> attr; // attr which should be contained
+    };*/
+
+    if((S & (S - 1)) == 0) {//如果S是一个二进制数，就是简单的那个表
+        int temp = log2(S);
+        temp--;
+        return Query::tables[temp];
+    }
+    else {
+        Step now = Query::Plan[S];//Plan的每一个元素是一个step
+        int S1 = now.S1, S2 = now.S2;
+        vector<JoinCondition> condition = now.conditions;
+        int num = condition.size();
+        //vector<string> attr = now.attr;新改的
+        vector<string> attr1;
+        attr1 = attr;
+        int num1 = attr1.size();
+
+        vector<string> attr2;
+        attr2 = attr;
+        int num2 = attr2.size();
+
+        for (int i =0;i<num;i++) {
+            string str1 = condition[i].attr1;
+            string str2 = condition[i].attr2;
+            attr1[num1++] = str1;
+            attr2[num2++] = str2;
+        }
+        return Do(Calc(S1, attr1), Calc(S2, attr2), condition, attr);
+        // return RG(); // for temporary debug
+    }
+}
+
+void Output(RG a) {//对一个表进行输出
+    int num1 = a.num1; // attr
+    //int num2 = a.num2; // pointer
+    int num3 = a.num3; // tuple
+
+    // 打开文件以进行写操作，如果文件不存在则创建，如果存在则覆盖
+    ofstream outputFile("result.txt");
+
+    // 重定向标准输出流到文件
+    streambuf *coutbuf = cout.rdbuf(); // 保存原始的 cout 缓冲区指针
+    cout.rdbuf(outputFile.rdbuf()); // 重定向 cout 到文件
+
+    // 输出到控制台和文件
+    cout << a.name << " addr:" << &a <<endl;
+    for (auto i : a.zero) {
+        cout << i << ' ';
+    }
+    cout << endl;
+    for (int i=0;i<num3;i++) {
+        for(int j=0;j<num1;j++) {
+            if (a.attr_type[j] == 0){
+                cout << a.table[i].attribute[j].number << " ";
+            } else if(a.attr_type[j] == 1) {
+                cout << (a.table[i].attribute[j].str) << " ";
+            } else if(a.attr_type[j] == 2) {
+                cout << "Pointers" << ' ';
+            } else {
+                cout << " Unknown attribute type! " ;
+            }
+
+        }
+        cout << "  fatherTableAddr: " << a.table[i].table;
+        cout << endl;
+    }
+
+    // 恢复标准输出流
+    cout.rdbuf(coutbuf);
+
+    // 关闭文件
+    outputFile.close();
 }
 
 namespace Debug {
@@ -835,8 +935,20 @@ int main() {
     RG *testEdgeJ = Exert::RGJoin(Rgs[2],Rgs[4],JoinConditions);
     Debug::outputRG(*testEdgeJ);
     Query :: Query();
-    Calc(0);
-    Output();
+
+    vector<string> readattr;
+
+    string input;
+    getline(cin, input);  // 从控制台读入一行输入
+    istringstream iss(input);
+    string token;
+    while (getline(iss, token, ' ')) {
+        readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
+    }
+
+    RG result = Calc(Query::best, readattr);//我从这儿开始改
+    Output(result);
+
     return 0;
 }
 /*
