@@ -262,6 +262,7 @@ namespace Query{
     vector<RG> tables;
     map<string, int> TableId;
     vector<vector<Edge> > G;
+    vector<vector<int> > uG;
     vector<int> checkId;
 
     long long GetCost(Step now) {
@@ -288,7 +289,7 @@ namespace Query{
                 V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
                 for(int j = 0; j < N; j++) V.table[j].attribute[0].number = g.Node[j];
                 TableId["V" + to_string(i)] = tot++;
-                G.emplace_back(), tables.push_back(V), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(V), checkId.push_back(cnt++);
             }
             for(int i = 0; i < graphM; i++) {
                 int x, y;
@@ -306,15 +307,22 @@ namespace Query{
                     int v = g.Edge[j].first.second;
                     long long id = g.Edge[j].second;
                     E_rev.table[j].attribute[0].number = id;
+                    if (E_rev.table[j].attribute[1].pointerSet == nullptr) {
+                        E_rev.table[j].attribute[1].pointerSet = new set<Tuple*>;
+                    }
                     ((set<Tuple*>*)E_rev.table[j].attribute[1].pointerSet) -> insert(&tables[x].table[u]);
                     tables[x].table[u].pointerFrom.insert(&E_rev.table[j].attribute[1]);
+                    if (tables[y].table[v].attribute[1].pointerSet == nullptr) {
+                        tables[y].table[v].attribute[1].pointerSet = new set<Tuple*>;
+                    }
                     ((set<Tuple*>*)tables[y].table[v].attribute[1].pointerSet) -> insert(&E_rev.table[j]);
                     E_rev.table[j].pointerFrom.insert(&tables[y].table[v].attribute[1]);
                 }
-                G.emplace_back(), tables.push_back(E_rev), checkId.push_back(cnt);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(E_rev), checkId.push_back(cnt);
 
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
                 condition2.attr2 = "V" + to_string(y) + ".in";
+                uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
                 G[y].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(x, condition1));
                 tot++;
@@ -326,15 +334,22 @@ namespace Query{
                     int v = g.Edge[j].first.second;
                     long long id = g.Edge[j].second;
                     E_ord.table[j].attribute[0].number = id;
+                    if (E_ord.table[j].attribute[1].pointerSet == nullptr) {
+                        E_ord.table[j].attribute[1].pointerSet = new set<Tuple*>;
+                    }
                     ((set<Tuple*>*)E_ord.table[j].attribute[1].pointerSet) -> insert(&tables[y].table[v]);
                     tables[y].table[v].pointerFrom.insert(&E_ord.table[j].attribute[1]);
+                    if (tables[x].table[u].attribute[2].pointerSet == nullptr) {
+                        tables[x].table[u].attribute[2].pointerSet = new set<Tuple*>;
+                    }
                     ((set<Tuple*>*)tables[x].table[u].attribute[2].pointerSet) -> insert(&E_ord.table[j]);
                     E_rev.table[j].pointerFrom.insert(&tables[x].table[u].attribute[2]);
                 }
-                G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
 
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
                 condition2.attr2 = "V" + to_string(x) + ".out";
+                uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
                 G[x].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(y, condition1));
                 tot++;
@@ -350,18 +365,21 @@ namespace Query{
             string tableName2 = attr2.substr(0, attr2.find_first_of('.'));
             if(!TableId.count(tableName1)) {
                 TableId[tableName1] = tot++;
-                G.emplace_back(), tables.push_back(Rgs[x]), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(Rgs[Table[tableName1]]), checkId.push_back(cnt++);
             }
             if(!TableId.count(tableName2)) {
                 TableId[tableName2] = tot++;
-                G.emplace_back(), tables.push_back(Rgs[x]), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(Rgs[Table[tableName2]]), checkId.push_back(cnt++);
             }
+            // cout << tableName1 << ' ' << tableName2 << '\n';
+            // for(auto [name, id] : TableId) cout << name << ' ' << id << '\n';
             x = TableId[tableName1];
             y = TableId[tableName2];
             JoinCondition condition;
             condition.attr1 = attr1;
             condition.attr2 = attr2;
             condition.cmp = cmp;
+            uG[x].push_back(y), uG[y].push_back(x);
             G[x].push_back(Edge(y, condition));
         }
     }
@@ -374,7 +392,7 @@ namespace Query{
     vector<int> Can;
 
     int B(int x) {
-        return ((1 << tot) - 1) ^ (x - 1);
+        return x | (x - 1);
     }
 
     int Min(int x) {
@@ -408,6 +426,7 @@ namespace Query{
     }
 
     void EmitCsgCmp(int S1, int S2) {
+        cout << S1 << ' ' << S2 << '\n';
         int Sta = S1 | S2;
         if(!Can[Sta]) return ;
         Step now = GetStep(S1, S2);
@@ -453,7 +472,7 @@ namespace Query{
         }
         
         for(int s = N; s ; s = (s - 1) & N) 
-            EmitCsg(S1 | s);
+            EnumerateCsgRec(S1 | s, X | Neighbor(S1, X));
     }
 
     void GetPlan() {
@@ -470,10 +489,13 @@ namespace Query{
             Can[s] = *max_element(vis.begin(), vis.end()) <= 1;            
             if(*min_element(vis.begin(), vis.end()) >= 1) Can[s] = 2;
         }
+        
         for(int i = 0; i < tot; i++) {
-            Id[1 << i] = i;
-            for(auto edge : G[i]) N[1 << i] |= edge.to;
+            Id[1 << i] = i, Plan[1 << i].S1 = 1 << i;
+            for(auto edge : uG[i]) N[1 << i] |= 1 << edge, cout << edge << ' ';
+            cout << N[1 << i] << '\n';
         }
+        cout << '\n';
         for(int s = 1; s < sta; s++) {
             N[s] = N[s  ^ (s & -s)] | N[s & -s];
         }
@@ -482,7 +504,37 @@ namespace Query{
             EnumerateCsgRec(1 << i , B(1 << i));
         }
     }
+/*
+2
+table1
+2 3
+id 0
+name 1
+1 Name
+2 Name1
+3 345
+table2
+2 3
+id 0
+name 1
+321 Name
+213 Name1
+3 3456
 
+1
+graph1
+3 2
+1 2 3
+1 2 0
+2 3 1
+
+1
+graph1 2 1
+0 1 
+1
+table1.id V0.id 3
+table1.name
+*/
     void Query() {
         BuildQueryGraph();
         GetPlan();
@@ -937,24 +989,26 @@ int main() {
     Debug::outputRG(*testJoin2);
     cout<<endl<<endl;
 
-    JoinConditions.clear();
-    JoinConditions.push_back({"graph1V.out", "graph1E_out.dst", 4});
-    RG *testEdgeJ = Exert::RGJoin(Rgs[2],Rgs[4],JoinConditions);
-    Debug::outputRG(*testEdgeJ);
+    // JoinConditions.clear();
+    // JoinConditions.push_back({"graph1V.out", "graph1E_out.dst", 4});
+    // RG *testEdgeJ = Exert::RGJoin(Rgs[2],Rgs[4],JoinConditions);
+    // Debug::outputRG(*testEdgeJ);
     Query :: Query();
 
+    cout << Query :: best << '\n';
     vector<string> readattr;
+    readattr.push_back("table1.name");
+    // string input;
+    // getline(cin, input);  // 从控制台读入一行输入
+    // istringstream iss(input);
+    // string token;
+    // while (getline(iss, token, ' ')) {
+    //     readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
+    // }
 
-    string input;
-    getline(cin, input);  // 从控制台读入一行输入
-    istringstream iss(input);
-    string token;
-    while (getline(iss, token, ' ')) {
-        readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
-    }
-
-    RG result = Calc(Query::best, readattr);//我从这儿开始改
-    Output(result);
+    // RG result = Calc(Query::best, readattr);//我从这儿开始改
+    // Debug::outputRG(result);
+    // Output(result);
 
     return 0;
 }
@@ -982,4 +1036,10 @@ graph1
 1 2 0
 2 3 1
 
+1
+graph1 2 1
+0 1 
+1
+table1.id V0.id 3
+table1.name
  */
