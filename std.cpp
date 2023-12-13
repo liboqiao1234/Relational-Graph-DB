@@ -39,17 +39,7 @@ public:
         pointerFrom.clear();
         this->num1 = num1;
     }
-    Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
-        table = fa;
-        num1 = a.num1 + b.num1;
-        attribute.resize(a.num1 + b.num1);
-        for (int i = 0; i < a.num1; i++) {
-            attribute[i] = a.attribute[i];
-        }
-        for (int i = 0; i < b.num1; i++) {
-            attribute[i + a.num1] = b.attribute[i];
-        }
-    }
+    Tuple (void *fa, Tuple &a, Tuple &b);
 };
 
 class RG{
@@ -127,6 +117,34 @@ string getAttrName(const string& AttrName) { // to split real AttrName from "Tab
     int loc = AttrName.find('.');
     string res = AttrName.substr(loc + 1, AttrName.npos);
     return res;
+}
+
+void updatePointer(Tuple *a, Tuple * ori) {
+    for(auto i:a->pointerFrom) {
+
+        if((set<Tuple*>*)(i->pointerSet) == nullptr) {
+            (i->pointerSet) = new set<Tuple*>*;
+        }
+        auto ps = (set<Tuple*>*)(i->pointerSet);
+        ps->erase(ori);
+        ps->insert(a);
+    }
+}
+
+Tuple::Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
+    table = fa;
+    num1 = a.num1 + b.num1;
+    attribute.resize(a.num1 + b.num1);
+    for (int i = 0; i < a.num1; i++) {
+        attribute[i] = a.attribute[i];
+    }
+    for (int i = 0; i < b.num1; i++) {
+        attribute[i + a.num1] = b.attribute[i];
+    }
+    pointerFrom.insert(a.pointerFrom.begin(), a.pointerFrom.end());
+    pointerFrom.insert(b.pointerFrom.begin(), b.pointerFrom.end());
+    updatePointer(this, &a);
+    updatePointer(this, &b); // 不确定是否有bug！
 }
 
 namespace Init{ 
@@ -265,7 +283,7 @@ namespace Query{
                 RG now = Rgs[n + 3 * graphId];
                 ChangeTableName(now, "V" + to_string(i));
                 TableId["V" + to_string(i)] = tot++;
-                G.push_back({}), tables.push_back(now), checkId.push_back(cnt++);
+                G.emplace_back(), tables.push_back(now), checkId.push_back(cnt++);
             }
             for(int i = 0; i < graphM; i++) {
                 int x, y;
@@ -276,7 +294,7 @@ namespace Query{
                 RG now = Rgs[n + 3 * graphId + 1];
                 ChangeTableName(now, "E_rev" + to_string(i));
                 TableId["E_rev" + to_string(i)] = tot;
-                G.push_back({}), tables.push_back(now), checkId.push_back(cnt);
+                G.emplace_back(), tables.push_back(now), checkId.push_back(cnt);
 
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
                 condition2.attr2 = "V" + to_string(y) + ".in";
@@ -287,7 +305,7 @@ namespace Query{
                 now = Rgs[n + 3 * graphId + 2];
                 ChangeTableName(now, "E_ord" + to_string(i));
                 TableId["E_ord" + to_string(i)] = tot;
-                G.push_back({}), tables.push_back(now), checkId.push_back(cnt++);
+                G.emplace_back(), tables.push_back(now), checkId.push_back(cnt++);
 
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
                 condition2.attr2 = "V" + to_string(x) + ".out";
@@ -306,11 +324,11 @@ namespace Query{
             string tableName2 = attr2.substr(0, attr2.find_first_of('.'));
             if(!TableId.count(tableName1)) {
                 TableId[tableName1] = tot++;
-                G.push_back({}), tables.push_back(Rgs[x]), checkId.push_back(cnt++);
+                G.emplace_back(), tables.push_back(Rgs[x]), checkId.push_back(cnt++);
             }
             if(!TableId.count(tableName2)) {
                 TableId[tableName2] = tot++;
-                G.push_back({}), tables.push_back(Rgs[x]), checkId.push_back(cnt++);
+                G.emplace_back(), tables.push_back(Rgs[x]), checkId.push_back(cnt++);
             }
             x = TableId[tableName1];
             y = TableId[tableName2];
@@ -466,22 +484,13 @@ namespace Exert{
             res->attr_type[i] = R.attr_type[line_no];
             selected_attr.push_back(line_no); // check the projection attrs' number
         }
-//        for (int i = 0; i < num2; i++) {
-//            attr_name = R.zero[R.num1 + i]; // means the pointers set
-//            line_no = R.poi[attr_name];
-//            res->poi[attr_name] = i;
-//            res->zero.push_back(attr_name);
-//            selected_poi.push_back(line_no); // pointers number
-//        }
 
         for (int i = 0; i < num3; i++) {
             auto tmpTuple = new Tuple(res, num1);
             for (int j = 0; j < num1; j++) {
                 (*tmpTuple).attribute[j] = R.table[i].attribute[selected_attr[j]];
             }
-//            for (int j = 0; j < num2; j++) {
-//                (*tmpTuple).pointerSet[j] = R.table[i].pointerSet[selected_poi[j]];
-//            }
+            updatePointer(tmpTuple,&(R.table[i]));
             res->table[i] = *tmpTuple;
         }
         return res;
@@ -530,7 +539,6 @@ namespace Exert{
     }
 
     bool CMP(const JoinCondition &condition, Tuple *aa, Tuple *bb, int lineNo1, int lineNo2) {
-        // unfinished
         auto &a = *aa;
         auto &b = *bb;
         //cout << "Inside a.table[i] addr" << &a<< " b: " << &b<<endl;
@@ -629,6 +637,7 @@ namespace Exert{
                 num3++;
                 auto tmpTuple = R.table[i];
                 tmpTuple.table = res;
+                updatePointer(&tmpTuple, &R.table[i]);
                 (res->table).push_back(tmpTuple); // beware bugs of copy construction ?
             }
         }
@@ -682,6 +691,8 @@ namespace Exert{
                 if (flag) {
                     assert(res->attr.size()==a.num1+b.num1);
                     auto tmpTuple = new Tuple(res, a.table[i], b.table[j]);
+                    updatePointer(tmpTuple, &a.table[i]);
+                    updatePointer(tmpTuple, &b.table[j]);
                     res->table.push_back(*tmpTuple);
                     tot++;
                 }
@@ -711,6 +722,20 @@ void Output() {
 }
 
 namespace Debug {
+    void testUpdatePointer() {
+        RG *test = new RG("testRG", 123, 1);
+        Tuple *a = new Tuple(test, 2);
+        a->attribute[0].number = 123;
+        Tuple *b = new Tuple(test, 2);
+        b->attribute[0].number = 234;
+        Tuple *c = new Tuple(test, 2);
+        (a->attribute[1].pointerSet) = new set<Tuple*>*();
+        auto ss = ((set<Tuple*>*)(a->attribute[1].pointerSet));
+        cout << b<<endl;
+        ss->insert(b); // 1:out
+        b->pointerFrom.insert((Attr*)&(a->attribute));
+        updatePointer(c,b);
+    }
     void outputRG(RG &a) {
         int num1 = a.num1; // attr
         int num3 = a.num3; // tuple
