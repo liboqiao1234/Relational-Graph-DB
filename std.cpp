@@ -321,7 +321,7 @@ namespace Query{
                 uG.emplace_back(), G.emplace_back(), tables.push_back(E_rev), checkId.push_back(cnt);
 
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
-                condition2.attr2 = "V" + to_string(y) + ".in";
+                condition2.attr1 = "V" + to_string(y) + ".in";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
                 G[y].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(x, condition1));
@@ -348,7 +348,7 @@ namespace Query{
                 uG.emplace_back(), G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
 
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
-                condition2.attr2 = "V" + to_string(x) + ".out";
+                condition2.attr1 = "V" + to_string(x) + ".out";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
                 G[x].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(y, condition1));
@@ -546,7 +546,6 @@ namespace Exert{
     RG* Projection(RG &R, vector<string> attrs1) { // if const R, can't access the R.attr[]
         // attrs include the RGName!!!!!!!!!!!!!! f**k...
         vector<string> attrs;
-        int numk = 0;
         int temp = R.num3;
         int temp1 = attrs1.size();
         for (int i=0;i<temp1;i++) {
@@ -558,7 +557,7 @@ namespace Exert{
                 }
             }
             if(flag==1) {
-                attrs[numk++] = attrs1[i];
+                attrs.emplace_back(attrs1[i]);
             }
         }
         tmpTableCnt++;
@@ -736,13 +735,23 @@ namespace Exert{
             for (int j = 0; j < b.num3; j++) {
                 flag = 1;
                 for (auto & condition: conditions) {
-                    int lineNo1 = a.attr[condition.attr1];
-                    int lineNo2 = b.attr[condition.attr2];
+                    int lineNo1 = a.attr.at(condition.attr1);
+                    int lineNo2 = b.attr.at(condition.attr2);
                     // cout << "a.table[i] addr" << &a.table[i] << " b: " << &b.table[j]<<endl;
-                    if (!CMP(condition, &a.table[i], &b.table[j], lineNo1, lineNo2)) {
-                        flag = 0;
-                        break;
+                    if (condition.attr1.empty() && condition.cmp == 4){
+                        if (!CMP(condition, &b.table[j], &a.table[i], lineNo2, lineNo1)) {
+                            flag = 0;
+                            break;
+                        }
+                    } else if(!condition.attr1.empty()){
+                        if (!CMP(condition, &a.table[i], &b.table[j], lineNo1, lineNo2)) {
+                            flag = 0;
+                            break;
+                        }
+                    } else{
+                        cout << "wrong!!!!" << endl;
                     }
+
                 }
                 if (flag) {
                     assert(res->attr.size()==a.num1+b.num1);
@@ -795,17 +804,17 @@ RG Calc(int S, vector<string> attr) {
         //vector<string> attr = now.attr;新改的
         vector<string> attr1;
         attr1 = attr;
-        int num1 = attr1.size();
+//        int num1 = attr1.size();
 
         vector<string> attr2;
         attr2 = attr;
-        int num2 = attr2.size();
+//        int num2 = attr2.size();
 
         for (int i =0;i<num;i++) {
             string str1 = condition[i].attr1;
             string str2 = condition[i].attr2;
-            attr1[num1++] = str1;
-            attr2[num2++] = str2;
+            attr1.emplace_back(str1);
+            attr2.emplace_back(str2);
         }
         return Do(Calc(S1, attr1), Calc(S2, attr2), condition, attr);
         // return RG(); // for temporary debug
