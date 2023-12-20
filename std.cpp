@@ -328,6 +328,8 @@ namespace Query{
                 tot++;
 
                 RG E_ord = RG("E_ord" + to_string(i), 2, M);
+                E_ord.zero.push_back(E_ord.name + ".id"), E_ord.attr[E_ord.name + ".id"] = 0, E_ord.attr_type[0] = 0;
+                E_ord.zero.push_back(E_ord.name + ".src"), E_ord.attr[E_ord.name + ".src"] = 1, E_ord.attr_type[1] = 2;
                 TableId["E_ord" + to_string(i)] = tot;
                 for(int j = 0; j < M; j++) {
                     int u = g.Edge[j].first.first;
@@ -793,7 +795,7 @@ RG Calc(int S, vector<string> attr) {
 
     if((S & (S - 1)) == 0) {//如果S是一个二进制数，就是简单的那个表
         int temp = log2(S);
-        temp--;
+        // temp--;
         return Query::tables[temp];
     }
     else {
