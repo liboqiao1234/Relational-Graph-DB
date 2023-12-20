@@ -300,7 +300,7 @@ namespace Query{
                 RG E_rev = RG("E_rev" + to_string(i), 2, M);
                 
                 E_rev.zero.push_back(E_rev.name + ".id"), E_rev.attr[E_rev.name + ".id"] = 0, E_rev.attr_type[0] = 0;
-                E_rev.zero.push_back(E_rev.name + ".src"), E_rev.attr[E_rev.name + ".src"] = 1, E_rev.attr_type[1] = 2;
+                E_rev.zero.push_back(E_rev.name + ".dst"), E_rev.attr[E_rev.name + ".dst"] = 1, E_rev.attr_type[1] = 2;
                 TableId["E_rev" + to_string(i)] = tot;
                 for(int j = 0; j < M; j++) {
                     int u = g.Edge[j].first.first;
@@ -329,7 +329,7 @@ namespace Query{
 
                 RG E_ord = RG("E_ord" + to_string(i), 2, M);
                 E_ord.zero.push_back(E_ord.name + ".id"), E_ord.attr[E_ord.name + ".id"] = 0, E_ord.attr_type[0] = 0;
-                E_ord.zero.push_back(E_ord.name + ".src"), E_ord.attr[E_ord.name + ".src"] = 1, E_ord.attr_type[1] = 2;
+                E_ord.zero.push_back(E_ord.name + ".dst"), E_ord.attr[E_ord.name + ".dst"] = 1, E_ord.attr_type[1] = 2;
                 TableId["E_ord" + to_string(i)] = tot;
                 for(int j = 0; j < M; j++) {
                     int u = g.Edge[j].first.first;
@@ -737,8 +737,8 @@ namespace Exert{
             for (int j = 0; j < b.num3; j++) {
                 flag = 1;
                 for (auto & condition: conditions) {
-                    int lineNo1 = a.attr.at(condition.attr1);
-                    int lineNo2 = b.attr.at(condition.attr2);
+                    int lineNo1 = a.attr[condition.attr1];
+                    int lineNo2 = b.attr[condition.attr2];
                     // cout << "a.table[i] addr" << &a.table[i] << " b: " << &b.table[j]<<endl;
                     if (condition.attr1.empty() && condition.cmp == 4){
                         if (!CMP(condition, &b.table[j], &a.table[i], lineNo2, lineNo1)) {
@@ -771,15 +771,15 @@ namespace Exert{
     }
 };
 
-RG Selectcolumn(RG a, vector<string> b) {
+RG Selectcolumn(RG &a, vector<string> b) {
     RG* result = Exert::Projection(a, b);
     return *result;
 }
 
 RG Do(RG a, RG b, vector<JoinCondition> c, vector<string> d) {
     RG* temp = Exert::RGJoin(a, b, c);
-    RG temp1 = *temp;
-    RG result = Selectcolumn(temp1, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
+    //*temp;
+    RG result = Selectcolumn(*temp, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
     return result;
 }
 
