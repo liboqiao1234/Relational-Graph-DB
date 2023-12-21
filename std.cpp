@@ -634,9 +634,15 @@ namespace Exert{
         auto &a = *aa;
         auto &b = *bb;
         int cmpop = condition.cmp;
-
-        Attr* av = new Attr(a.attribute[lineNo1]);
-        Attr* bv = new Attr(b.attribute[lineNo2]);
+        Attr* av;
+        if (lineNo1 != -1) {
+            av = new Attr(a.attribute[lineNo1]);
+        }
+        Attr* bv;
+        if (lineNo2 != -1) {
+            bv = new Attr(b.attribute[lineNo2]);
+        }
+        if (cmpop !=4 && (lineNo1 ==-1 || lineNo2==-1)) cout<<"Join wrong: no such attr in no-edge join!"<<endl;
         switch (cmpop) {
             case 0:{
                 if (strcmp(av->str, bv->str)==0){
@@ -737,9 +743,20 @@ namespace Exert{
             for (int j = 0; j < b.num3; j++) {
                 flag = 1;
                 for (auto & condition: conditions) {
-                    int lineNo1 = a.attr[condition.attr1];
-                    int lineNo2 = b.attr[condition.attr2];
+                    int lineNo1 = -2;
+                    try{
+                        lineNo1 = a.attr.at(condition.attr1);
+                    }catch (...){
+                        lineNo1 = -1;
+                    }
+                    int lineNo2 = -2;
+                    try{
+                        lineNo2 = b.attr.at(condition.attr2);
+                    }catch (...){
+                        lineNo2 = -1;
+                    }
                     // cout << "a.table[i] addr" << &a.table[i] << " b: " << &b.table[j]<<endl;
+                    cout << "Join CMP:" << a.name <<" "<< b.name <<endl;
                     if (condition.attr1.empty() && condition.cmp == 4){
                         if (!CMP(condition, &b.table[j], &a.table[i], lineNo2, lineNo1)) {
                             flag = 0;
