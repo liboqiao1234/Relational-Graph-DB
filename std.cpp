@@ -97,7 +97,7 @@ void outputRG(RG &a) {
                     continue;
                 }
                 for(auto i : (*ps)){
-                    cout<<(i->table)<<" ";
+                    cout<<(i)<<" ";
                 }
 
             } else {
@@ -160,10 +160,14 @@ void updatePointer(Tuple *a, Tuple * ori) {
             (i->pointerSet) = new set<Tuple*>;
         }
         auto ps = static_cast<set<Tuple*>*>(i->pointerSet);
-        ps->erase(ori);
+
+        if(ps->erase(ori)){
+            cout << "delete old pointer to " << ori <<endl;
+        }
         ps->insert(a);
-        cout<<"";
+        cout<<"insert new pointer to "<<a<<endl<<endl;
     }
+    cout<<endl;
 }
 
 Tuple::Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
@@ -178,8 +182,12 @@ Tuple::Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
     }
     pointerFrom.insert(a.pointerFrom.begin(), a.pointerFrom.end());
     pointerFrom.insert(b.pointerFrom.begin(), b.pointerFrom.end());
+    cout<<endl<<endl;
+    cout<<"update pointer from "<<&a <<" to " << this<<endl;
     updatePointer(this, &a);
+    cout<<"update pointer from "<<&b <<" to " << this<<endl;
     updatePointer(this, &b); // 不确定是否有bug！
+    cout<<endl<<endl;
 }
 
 void updateFather(RG &t) {
@@ -642,6 +650,7 @@ namespace Exert{
             if(res->name == "__tmpTable4") {
                 cout<< "stop here"<<endl;
             }
+            cout<<"Projection::update pointer from "<<&R.table[i] <<" to " << tmpTuple<<endl;
             updatePointer(tmpTuple,&(R.table[i]));
             res->table[i] = *tmpTuple;
         }
@@ -768,8 +777,9 @@ namespace Exert{
             }
             if (flag) {
                 num3++;
-                auto tmpTuple = R.table[i];
+                auto tmpTuple = R.table[i]; // remained bugable!
                 tmpTuple.table = res;
+                cout<<"Selection::update pointer from "<<&R.table[i] <<" to " << &tmpTuple <<endl;
                 updatePointer(&tmpTuple, &R.table[i]);
                 (res->table).push_back(tmpTuple); // beware bugs of copy construction ?
             }
@@ -841,14 +851,17 @@ namespace Exert{
                     auto tmpTuple = new Tuple(res, a.table[i], b.table[j]);
                     //updatePointer(tmpTuple, &a.table[i]);
                     //updatePointer(tmpTuple, &b.table[j]);
-                    res->table.push_back(*tmpTuple);
-                    auto test = static_cast<set<Tuple*>*>(tmpTuple->attribute[2].pointerSet);
+                    res->table.emplace_back(std::move(*tmpTuple));
+                    //auto test = static_cast<set<Tuple*>*>(tmpTuple->attribute[2].pointerSet);
                     tot++;
                 }
             }
         }
 
         res->num3 = tot;
+        cout<<endl<<"Before join return"<<endl;
+        outputRG(*res);
+        cout<<endl;
         return res;
     }
 };
@@ -859,10 +872,19 @@ RG *Selectcolumn(RG &a, vector<string> b) {
 }
 
 RG *Do(RG *a, RG *b, vector<JoinCondition> c, vector<string> d) {
+    if (a->name=="__tmpTable2") {
+        cout <<" Critical step!"<<endl;
+        outputRG(*a);
+        cout<<endl;
+        outputRG(*b);
+        cout<<endl;
+    }
     RG* temp = Exert::RGJoin(*a, *b, c);
-    //*temp;
-    
+    // here tmp2 should change pointer for the first time
+    cout<<"Before projection"<<endl;
+    outputRG(*temp);
     RG *result = Selectcolumn(*temp, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
+    // here tmp2 should be changed again
     outputRG(*result);
     cout<<endl<<endl;
     return result;
