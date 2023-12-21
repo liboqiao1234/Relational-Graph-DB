@@ -74,6 +74,32 @@ public:
     }
 };
 
+void outputRG(RG &a) {
+    int num1 = a.num1; // attr
+    int num3 = a.num3; // tuple
+    cout << a.name << " addr:" << &a <<endl;
+    for (auto i:a.zero) {
+        cout << i << ' ';
+    }
+    cout << endl;
+    for (int i=0;i<num3;i++) {
+        for(int j=0;j<num1;j++) {
+            if (a.attr_type[j] == 0){
+                cout << a.table[i].attribute[j].number << " ";
+            } else if(a.attr_type[j] == 1) {
+                cout << (a.table[i].attribute[j].str) << " ";
+            } else if(a.attr_type[j] == 2) {
+                cout << "Pointers" << ' ';
+            } else {
+                    cout << " Unknown attribute type! " ;
+            }
+
+        }
+        cout << "  fatherTableAddr: " << a.table[i].table;
+        cout << endl;
+    }
+}
+
 vector<RG> Rgs;
 
 class SelCondition{
@@ -548,7 +574,7 @@ namespace Exert{
     RG* Projection(RG &R, vector<string> attrs1) { // if const R, can't access the R.attr[]
         // attrs include the RGName!!!!!!!!!!!!!! f**k...
         vector<string> attrs;
-        int temp = R.num3;
+        int temp = R.num1;
         int temp1 = attrs1.size();
         for (int i=0;i<temp1;i++) {
             int flag = 0;
@@ -796,6 +822,7 @@ RG *Selectcolumn(RG &a, vector<string> b) {
 RG *Do(RG *a, RG *b, vector<JoinCondition> c, vector<string> d) {
     RG* temp = Exert::RGJoin(*a, *b, c);
     //*temp;
+    
     RG *result = Selectcolumn(*temp, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
     return result;
 }
@@ -837,7 +864,10 @@ RG *Calc(int S, vector<string> attr) {
         }
         RG *s1 = Calc(S1, attr1);
         RG *s2 = Calc(S2, attr2);
-        return Do(s1, s2, condition, attr);
+        
+
+        RG *res = Do(s1, s2, condition, attr);
+        return res;
 //        return Do(Calc(S1, attr1), Calc(S2, attr2), condition, attr);
         // return RG(); // for temporary debug
     }
@@ -901,31 +931,7 @@ namespace Debug {
         updatePointer(c,b);
         cout<<"AtoC? :" <<((set<Tuple*>*)(a->attribute[1].pointerSet))->count(c)<<endl;
     }
-    void outputRG(RG &a) {
-        int num1 = a.num1; // attr
-        int num3 = a.num3; // tuple
-        cout << a.name << " addr:" << &a <<endl;
-        for (auto i:a.zero) {
-            cout << i << ' ';
-        }
-        cout << endl;
-        for (int i=0;i<num3;i++) {
-            for(int j=0;j<num1;j++) {
-                if (a.attr_type[j] == 0){
-                    cout << a.table[i].attribute[j].number << " ";
-                } else if(a.attr_type[j] == 1) {
-                    cout << (a.table[i].attribute[j].str) << " ";
-                } else if(a.attr_type[j] == 2) {
-                    cout << "Pointers" << ' ';
-                } else {
-                        cout << " Unknown attribute type! " ;
-                }
-
-            }
-            cout << "  fatherTableAddr: " << a.table[i].table;
-            cout << endl;
-        }
-    }
+   
     void testExert(){
         vector<string>ProjectAttrs;
         ProjectAttrs.emplace_back("table1.name");// means "name"
@@ -956,7 +962,7 @@ namespace Debug {
         */
         //vector<string>ProjectPointers;
         RG *test = Exert ::Projection(Rgs[0], ProjectAttrs);
-        Debug::outputRG(*test);
+        outputRG(*test);
 
         cout<<endl<<endl;
 
@@ -969,24 +975,24 @@ namespace Debug {
         SelectionCon.push_back(a);
         RG *testSel = Exert::Selection(Rgs[0], SelectionCon);
 
-        Debug::outputRG(*testSel);
+        outputRG(*testSel);
         cout<<endl<<endl;
         RG *testMix = Exert::Projection(*testSel, ProjectAttrs);
-        Debug::outputRG(*testMix);
+        outputRG(*testMix);
         cout<<endl<<endl;
 
         vector<JoinCondition> JoinConditions;
         JoinCondition jc = {"table1.name", "table2.name", 0}; // name equal
         JoinConditions.push_back(jc);
         RG *testJoin1 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
-        Debug::outputRG(*testJoin1);
+        outputRG(*testJoin1);
         cout<<endl<<endl;
 
 
         JoinConditions.clear();
         JoinConditions.push_back({"table1.id","table2.id",3}); // A.id >= B.id
         RG *testJoin2 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
-        Debug::outputRG(*testJoin2);
+        outputRG(*testJoin2);
         cout<<endl<<endl;
     }
 };
@@ -1000,17 +1006,17 @@ int main() {
     cout << Query :: best << '\n';
     vector<string> readattr;
     readattr.emplace_back("table1.name");
-     string input;
-     getline(cin, input);  // 从控制台读入一行输入
-     istringstream iss(input);
-     string token;
-     while (getline(iss, token, ' ')) {
-         readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
-     }
+        string input;
+        getline(cin, input);  // 从控制台读入一行输入
+        istringstream iss(input);
+        string token;
+        while (getline(iss, token, ' ')) {
+            readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
+        }
 
-     RG *result = Calc(Query::best, readattr);//我从这儿开始改
-     Debug::outputRG(*result);
-     Output(*result);
+        RG *result = Calc(Query::best, readattr);//我从这儿开始改
+        outputRG(*result);
+    //  Output(*result);
 
     return 0;
 }
