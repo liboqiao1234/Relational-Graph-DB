@@ -255,7 +255,7 @@ namespace Query{
     struct Edge{
         int to;
         JoinCondition condition;
-        Edge(int to = 0, JoinCondition condition = *(new JoinCondition())) : to(to), condition(std::move(condition)) {}
+        explicit Edge(int to = 0, JoinCondition condition = *(new JoinCondition())) : to(to), condition(std::move(condition)) {}
     };
 
     int tot, cnt;
@@ -276,7 +276,7 @@ namespace Query{
         cin >> type;
         if(type == 1) {
             // build graphMatch
-            int graphN, graphM, graphId; 
+            int graphN, graphM, graphId;
             string graphName;
             cin >> graphName >> graphN >> graphM;
             graphId = GraphId[graphName];
@@ -298,7 +298,7 @@ namespace Query{
                 condition1.cmp = condition2 .cmp = 4;
 
                 RG E_rev = RG("E_rev" + to_string(i), 2, M);
-                
+
                 E_rev.zero.push_back(E_rev.name + ".id"), E_rev.attr[E_rev.name + ".id"] = 0, E_rev.attr_type[0] = 0;
                 E_rev.zero.push_back(E_rev.name + ".dst"), E_rev.attr[E_rev.name + ".dst"] = 1, E_rev.attr_type[1] = 2;
                 TableId["E_rev" + to_string(i)] = tot;
@@ -402,9 +402,9 @@ namespace Query{
     }
 
     int Neighbor(int S, int X) {
-        return N[S] ^ (N[S] & X); 
+        return N[S] ^ (N[S] & X);
     }
-    
+
     Step GetStep(int S1, int S2) {
         Step res;
         res.S1 = S1, res.S2 = S2, res.conditions.clear();
@@ -418,7 +418,7 @@ namespace Query{
             int i = Id[t];
             for(auto [j, condition] : G[i]) if(S1 >> j & 1) {
                 JoinCondition condition1 = condition;
-                if(condition1.cmp == 2 || condition1.cmp == 3) 
+                if(condition1.cmp == 2 || condition1.cmp == 3)
                     condition1.cmp = 5 - condition1.cmp;
                 swap(condition1.attr1, condition1.attr2);
                 res.conditions.push_back(condition1);
@@ -465,15 +465,15 @@ namespace Query{
             EnumerateCmpRec(S1, S2, X);
         }
     }
-        
+
     void EnumerateCsgRec(int S1, int X) {
         int N = Neighbor(S1, X);
         for(int s = N; s ; s = (s - 1) & N) {
             if(Plan[S1 | s].S1)
                 EmitCsg(S1 | s);
         }
-        
-        for(int s = N; s ; s = (s - 1) & N) 
+
+        for(int s = N; s ; s = (s - 1) & N)
             EnumerateCsgRec(S1 | s, X | Neighbor(S1, X));
     }
 
@@ -483,15 +483,15 @@ namespace Query{
         Cost.clear(), Cost.resize(sta);
         Plan.clear(), Plan.resize(sta);
         N.clear(), N.resize(sta);
-        Can.clear(), Can.resize(sta); 
+        Can.clear(), Can.resize(sta);
         for(int s = 0; s < sta; s++) {
-            vector<int> vis(cnt, 0); 
-            for(int i = 0; i < tot; i++) 
+            vector<int> vis(cnt, 0);
+            for(int i = 0; i < tot; i++)
                 if(s >> i & 1) vis[checkId[i]]++;
-            Can[s] = *max_element(vis.begin(), vis.end()) <= 1;            
+            Can[s] = *max_element(vis.begin(), vis.end()) <= 1;
             if(*min_element(vis.begin(), vis.end()) >= 1) Can[s] = 2;
         }
-        
+
         for(int i = 0; i < tot; i++) {
             Id[1 << i] = i, Plan[1 << i].S1 = 1 << i;
             for(auto edge : uG[i]) N[1 << i] |= 1 << edge, cout << edge << ' ';
@@ -532,7 +532,7 @@ graph1
 
 1
 graph1 2 1
-0 1 
+0 1
 1
 table1.id V0.id 3
 table1.name
@@ -771,20 +771,20 @@ namespace Exert{
     }
 };
 
-RG Selectcolumn(RG &a, vector<string> b) {
+RG *Selectcolumn(RG &a, vector<string> b) {
     RG* result = Exert::Projection(a, b);
-    return *result;
+    return result;
 }
 
-RG Do(RG a, RG b, vector<JoinCondition> c, vector<string> d) {
-    RG* temp = Exert::RGJoin(a, b, c);
+RG *Do(RG *a, RG *b, vector<JoinCondition> c, vector<string> d) {
+    RG* temp = Exert::RGJoin(*a, *b, c);
     //*temp;
-    RG result = Selectcolumn(*temp, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
+    RG *result = Selectcolumn(*temp, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
     return result;
 }
 
 //从这儿开始改
-RG Calc(int S, vector<string> attr) {
+RG *Calc(int S, vector<string> attr) {
 
     /*class Step{
     public:
@@ -796,7 +796,7 @@ RG Calc(int S, vector<string> attr) {
     if((S & (S - 1)) == 0) {//如果S是一个二进制数，就是简单的那个表
         int temp = log2(S);
         // temp--;
-        return Query::tables[temp];
+        return &(Query::tables[temp]);
     }
     else {
         Step now = Query::Plan[S];//Plan的每一个元素是一个step
@@ -818,7 +818,10 @@ RG Calc(int S, vector<string> attr) {
             attr1.emplace_back(str1);
             attr2.emplace_back(str2);
         }
-        return Do(Calc(S1, attr1), Calc(S2, attr2), condition, attr);
+        RG *s1 = Calc(S1, attr1);
+        RG *s2 = Calc(S2, attr2);
+        return Do(s1, s2, condition, attr);
+//        return Do(Calc(S1, attr1), Calc(S2, attr2), condition, attr);
         // return RG(); // for temporary debug
     }
 }
@@ -988,9 +991,9 @@ int main() {
          readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
      }
 
-     RG result = Calc(Query::best, readattr);//我从这儿开始改
-     Debug::outputRG(result);
-     Output(result);
+     RG *result = Calc(Query::best, readattr);//我从这儿开始改
+     Debug::outputRG(*result);
+     Output(*result);
 
     return 0;
 }
@@ -1020,7 +1023,7 @@ graph1
 
 1
 graph1 2 1
-0 1 
+0 1
 1
 table1.id V0.id 3
 table1.name
