@@ -345,7 +345,7 @@ namespace Query{
                         tables[x].table[u].attribute[2].pointerSet = new set<Tuple*>;
                     }
                     ((set<Tuple*>*)tables[x].table[u].attribute[2].pointerSet) -> insert(&E_ord.table[j]);
-                    E_rev.table[j].pointerFrom.insert(&tables[x].table[u].attribute[2]);
+                    E_ord.table[j].pointerFrom.insert(&tables[x].table[u].attribute[2]);
                 }
                 uG.emplace_back(), G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
 
