@@ -123,7 +123,7 @@ void updatePointer(Tuple *a, Tuple * ori) {
         if((set<Tuple*>*)(i->pointerSet) == nullptr) {
             (i->pointerSet) = new set<Tuple*>;
         }
-        set<Tuple*>* ps = (set<Tuple*>*)(i->pointerSet);
+        auto ps = static_cast<set<Tuple*>*>(i->pointerSet);
         ps->erase(ori);
         ps->insert(a);
     }
@@ -318,7 +318,7 @@ namespace Query{
                     ((set<Tuple*>*)tables[y].table[v].attribute[1].pointerSet) -> insert(&E_rev.table[j]);
                     E_rev.table[j].pointerFrom.insert(&tables[y].table[v].attribute[1]);
                 }
-                uG.emplace_back(), G.emplace_back(), tables.push_back(E_rev), checkId.push_back(cnt);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(std::move(E_rev)), checkId.push_back(cnt);
 
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(y) + ".in";
@@ -347,7 +347,7 @@ namespace Query{
                     ((set<Tuple*>*)tables[x].table[u].attribute[2].pointerSet) -> insert(&E_ord.table[j]);
                     E_ord.table[j].pointerFrom.insert(&tables[x].table[u].attribute[2]);
                 }
-                uG.emplace_back(), G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(std::move(E_ord)), checkId.push_back(cnt++);
 
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(x) + ".out";
