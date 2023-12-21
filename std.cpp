@@ -90,15 +90,16 @@ void outputRG(RG &a) {
             } else if(a.attr_type[j] == 1) {
                 cout << (a.table[i].attribute[j].str) << " ";
             } else if(a.attr_type[j] == 2) {
-                cout << "Pointers to" << ' ';
+                cout << "Pointers to:" << ' ';
                 auto ps = static_cast<set<Tuple*>*>(a.table[i].attribute[j].pointerSet);
                 if (ps == nullptr) {
-                    cout<<" empty!"<<endl;
+                    cout<<" empty! ";
                     continue;
                 }
                 for(auto i : (*ps)){
-                    cout<< (i->table)<<" ";
+                    cout<<(i->table)<<" ";
                 }
+
             } else {
                     cout << " Unknown attribute type! " ;
             }
@@ -179,6 +180,12 @@ Tuple::Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
     pointerFrom.insert(b.pointerFrom.begin(), b.pointerFrom.end());
     updatePointer(this, &a);
     updatePointer(this, &b); // 不确定是否有bug！
+}
+
+void updateFather(RG &t) {
+    for(int i=0;i<t.num3;i++) {
+        t.table[i].table = &t;
+    }
 }
 
 namespace Init{ 
@@ -325,7 +332,8 @@ namespace Query{
                 V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
                 for(int j = 0; j < N; j++) V.table[j].attribute[0].number = g.Node[j];
                 TableId["V" + to_string(i)] = tot++;
-                uG.emplace_back(), G.emplace_back(), tables.push_back(std::move(V)), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.emplace_back(std::move(V)), checkId.push_back(cnt++);
+                updateFather(tables[tables.size()-1]);
             }
             for(int i = 0; i < graphM; i++) {
                 int x, y;
@@ -354,7 +362,10 @@ namespace Query{
                     ((set<Tuple*>*)tables[y].table[v].attribute[1].pointerSet) -> insert(&E_rev.table[j]);
                     E_rev.table[j].pointerFrom.insert(&tables[y].table[v].attribute[1]);
                 }
-                uG.emplace_back(), G.emplace_back(), tables.push_back(std::move(E_rev)), checkId.push_back(cnt);
+                uG.emplace_back(), G.emplace_back();
+                tables.push_back(std::move(E_rev));
+                updateFather(tables[tables.size()-1]);
+                checkId.push_back(cnt);
 
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(y) + ".in";
@@ -384,7 +395,7 @@ namespace Query{
                     E_ord.table[j].pointerFrom.insert(&tables[x].table[u].attribute[2]);
                 }
                 uG.emplace_back(), G.emplace_back(), tables.push_back(std::move(E_ord)), checkId.push_back(cnt++);
-
+                updateFather(tables[tables.size()-1]);
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(x) + ".out";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
@@ -1024,6 +1035,10 @@ int main() {
     //Debug::testExert();
     Query :: Query();
     outputRG(Query::tables[Query::TableId["V0"]]);
+    cout<<endl<<endl;
+    outputRG(Query::tables[Query::TableId["E_ord0"]]);
+    cout<<endl<<endl;
+    outputRG(Query::tables[Query::TableId["E_rev0"]]);
     cout<<endl<<endl;
     cout << Query :: best << '\n';
     vector<string> readattr;
