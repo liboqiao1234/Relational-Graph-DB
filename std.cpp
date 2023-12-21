@@ -40,7 +40,7 @@ public:
         pointerFrom.clear();
         this->num1 = num1;
     }
-    Tuple (void *fa, Tuple &a, Tuple &b);
+    Tuple (void *fa, Tuple *a, Tuple *b);
 };
 
 class Graph{
@@ -57,7 +57,7 @@ public:
     int num1; // number of attribute
     int num3; // number of tuple
     string name;
-    vector<Tuple> table;
+    vector<Tuple*> table;
     vector<string>zero; // first row: attr name and pointer name;
     map <string, int> attr; // name -> line no.
     map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:str
@@ -66,7 +66,7 @@ public:
         attr.clear();
         zero.clear();
         for (int i = 0; i < num3; i++) {
-            table.emplace_back(this, num1);
+            table.emplace_back(new Tuple(this, num1));
         }
         this->name = name;
         this->num1 = num1;
@@ -86,12 +86,12 @@ void outputRG(RG &a) {
         cout<<"tupleAddr: "<<&(a.table[i])<<" ";
         for(int j=0;j<num1;j++) {
             if (a.attr_type[j] == 0){
-                cout << a.table[i].attribute[j].number << " ";
+                cout << a.table[i]->attribute[j].number << " ";
             } else if(a.attr_type[j] == 1) {
-                cout << (a.table[i].attribute[j].str) << " ";
+                cout << (a.table[i]->attribute[j].str) << " ";
             } else if(a.attr_type[j] == 2) {
                 cout << "Pointers to:" << ' ';
-                auto ps = static_cast<set<Tuple*>*>(a.table[i].attribute[j].pointerSet);
+                auto ps = static_cast<set<Tuple*>*>(a.table[i]->attribute[j].pointerSet);
                 if (ps == nullptr) {
                     cout<<" empty! ";
                     continue;
@@ -105,7 +105,7 @@ void outputRG(RG &a) {
             }
 
         }
-        cout << "  fatherTableAddr: " << a.table[i].table;
+        cout << "  fatherTableAddr: " << a.table[i]->table;
         cout << endl;
     }
 }
@@ -170,7 +170,9 @@ void updatePointer(Tuple *a, Tuple * ori) {
     cout<<endl;
 }
 
-Tuple::Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
+Tuple::Tuple (void *fa, Tuple *aa, Tuple *bb) { // a+b
+    Tuple a = *aa;
+    Tuple b = *bb;
     table = fa;
     num1 = a.num1 + b.num1;
     attribute.resize(a.num1 + b.num1);
@@ -192,7 +194,7 @@ Tuple::Tuple (void *fa, Tuple &a, Tuple &b) { // a+b
 
 void updateFather(RG &t) {
     for(int i=0;i<t.num3;i++) {
-        t.table[i].table = &t;
+        t.table[i]->table = &t;
     }
 }
 
@@ -217,10 +219,10 @@ namespace Init{
             for (int j = 0; j < num3; j++) {
                 for (int k = 0; k < num1; k++) {
                     if(now.attr_type[k] == 0) {
-                        cin >> now.table[j].attribute[k].number;
+                        cin >> now.table[j]->attribute[k].number;
                     } else {
-                        now.table[j].attribute[k].str = new char();
-                        cin >> now.table[j].attribute[k].str;
+                        now.table[j]->attribute[k].str = new char();
+                        cin >> now.table[j]->attribute[k].str;
                         // use cin to deal with input for char* type may cause error!!!!!
                         // already fixed at 23.12.1
                     }
@@ -338,7 +340,7 @@ namespace Query{
                 V -> zero.push_back(V -> name + ".id"), V -> attr[V -> name + ".id"] = 0, V -> attr_type[0] = 0;
                 V -> zero.push_back(V -> name + ".in"), V -> attr[V -> name + ".in"] = 1, V -> attr_type[1] = 2;
                 V -> zero.push_back(V -> name + ".out"), V -> attr[V -> name + ".out"] = 2, V -> attr_type[2] = 2;
-                for(int j = 0; j < N; j++) V -> table[j].attribute[0].number = g.Node[j];
+                for(int j = 0; j < N; j++) V -> table[j]->attribute[0].number = g.Node[j];
                 TableId["V" + to_string(i)] = tot++;
                 uG.emplace_back(), G.emplace_back(), tables.emplace_back(V), checkId.push_back(cnt++);
                 updateFather(*tables[tables.size()-1]);
@@ -359,22 +361,22 @@ namespace Query{
                     int u = g.Edge[j].first.first;
                     int v = g.Edge[j].first.second;
                     long long id = g.Edge[j].second;
-                    E_rev -> table[j].attribute[0].number = id;
-                    if (E_rev -> table[j].attribute[1].pointerSet == nullptr) {
-                        E_rev -> table[j].attribute[1].pointerSet = new set<Tuple*>;
+                    E_rev -> table[j]->attribute[0].number = id;
+                    if (E_rev -> table[j]->attribute[1].pointerSet == nullptr) {
+                        E_rev -> table[j]->attribute[1].pointerSet = new set<Tuple*>;
                     }
-                    ((set<Tuple*>*)E_rev -> table[j].attribute[1].pointerSet) -> insert(&(tables[x] -> table[u]));
+                    static_cast<set<Tuple*>*>(E_rev -> table[j]->attribute[1].pointerSet) -> insert((tables[x] -> table[u]));
                     cout << tables.size() << ' ' << y << '\n';
                     outputRG(*tables[x]); 
                     cout << (tables[x] -> table).size() << ' ' << (tables[y] -> table).size() << '\n';
-                    cout << &(E_rev -> table[j].attribute[1]) << '\n';
+                    cout << &(E_rev -> table[j]->attribute[1]) << '\n';
                     cout << "xxx";
-                    (tables[x] -> table[u]).pointerFrom.insert(&E_rev -> table[j].attribute[1]);
-                    if ((tables[y] -> table[v]).attribute[1].pointerSet == nullptr) {
-                        (tables[y] -> table[v]).attribute[1].pointerSet = new set<Tuple*>;
+                    (tables[x] -> table[u])->pointerFrom.insert(&E_rev -> table[j]->attribute[1]);
+                    if ((tables[y] -> table[v])->attribute[1].pointerSet == nullptr) {
+                        (tables[y] -> table[v])->attribute[1].pointerSet = new set<Tuple*>;
                     }
-                    ((set<Tuple*>*)(tables[y] -> table[v]).attribute[1].pointerSet) -> insert(&E_rev -> table[j]);
-                    E_rev -> table[j].pointerFrom.insert(&(tables[y] -> table[v]).attribute[1]);
+                    static_cast<set<Tuple*>*>((tables[y] -> table[v])->attribute[1].pointerSet) -> insert(E_rev -> table[j]);
+                    E_rev -> table[j]->pointerFrom.insert(&(tables[y] -> table[v])->attribute[1]);
                 }
                 cout << "xxx";
                 uG.emplace_back(), G.emplace_back();
@@ -397,17 +399,18 @@ namespace Query{
                     int u = g.Edge[j].first.first;
                     int v = g.Edge[j].first.second;
                     long long id = g.Edge[j].second;
-                    E_ord -> table[j].attribute[0].number = id;
-                    if (E_ord -> table[j].attribute[1].pointerSet == nullptr) {
-                        E_ord -> table[j].attribute[1].pointerSet = new set<Tuple*>;
+                    E_ord -> table[j]->attribute[0].number = id;
+                    if (E_ord -> table[j]->attribute[1].pointerSet == nullptr) {
+                        E_ord -> table[j]->attribute[1].pointerSet = new set<Tuple*>;
                     }
-                    ((set<Tuple*>*)E_ord -> table[j].attribute[1].pointerSet) -> insert(&(tables[y] -> table[v]));
-                    (tables[y] -> table[v]).pointerFrom.insert(&E_ord -> table[j].attribute[1]);
-                    if ((tables[x] -> table[u]).attribute[2].pointerSet == nullptr) {
-                        (tables[x] -> table[u]).attribute[2].pointerSet = new set<Tuple*>;
+                    static_cast<set<Tuple*>*>(E_ord -> table[j]->attribute[1].pointerSet)->insert(tables[y]->table[v]);
+//                    ((set<Tuple*>*)E_ord -> table[j]->attribute[1].pointerSet) -> insert((tables[y] -> table[v]));
+                    (tables[y] -> table[v])->pointerFrom.insert(&E_ord -> table[j]->attribute[1]);
+                    if ((tables[x] -> table[u])->attribute[2].pointerSet == nullptr) {
+                        (tables[x] -> table[u])->attribute[2].pointerSet = new set<Tuple*>;
                     }
-                    ((set<Tuple*>*)(tables[x] -> table[u]).attribute[2].pointerSet) -> insert(&E_ord -> table[j]);
-                    E_ord -> table[j].pointerFrom.insert(&(tables[x] -> table[u]).attribute[2]);
+                    static_cast<set<Tuple*>*>((tables[x] -> table[u])->attribute[2].pointerSet) -> insert(E_ord -> table[j]);
+                    E_ord -> table[j]->pointerFrom.insert(&(tables[x] -> table[u])->attribute[2]);
                 }
                 uG.emplace_back(), G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
                 updateFather(*tables[tables.size()-1]);
@@ -643,16 +646,16 @@ namespace Exert{
 
         for (int i = 0; i < num3; i++) {
             auto tmpTuple = new Tuple(res, num1);
-            tmpTuple->pointerFrom.insert(R.table[i].pointerFrom.begin(), R.table[i].pointerFrom.end());
+            tmpTuple->pointerFrom.insert(R.table[i]->pointerFrom.begin(), R.table[i]->pointerFrom.end());
             for (int j = 0; j < num1; j++) {
-                (*tmpTuple).attribute[j] = R.table[i].attribute[selected_attr[j]];
+                (*tmpTuple).attribute[j] = R.table[i]->attribute[selected_attr[j]];
             }
             if(res->name == "__tmpTable4") {
                 cout<< "stop here"<<endl;
             }
             cout<<"Projection::update pointer from "<<&R.table[i] <<" to " << tmpTuple<<endl;
-            updatePointer(tmpTuple,&(R.table[i]));
-            res->table[i] = *tmpTuple;
+            updatePointer(tmpTuple,R.table[i]);
+            res->table[i] = tmpTuple;
         }
         return res;
     }
@@ -778,9 +781,9 @@ namespace Exert{
             if (flag) {
                 num3++;
                 auto tmpTuple = R.table[i]; // remained bugable!
-                tmpTuple.table = res;
+                tmpTuple->table = res;
                 cout<<"Selection::update pointer from "<<&R.table[i] <<" to " << &tmpTuple <<endl;
-                updatePointer(&tmpTuple, &R.table[i]);
+                updatePointer(tmpTuple, R.table[i]);
                 (res->table).push_back(tmpTuple); // beware bugs of copy construction ?
             }
         }
@@ -832,12 +835,12 @@ namespace Exert{
                         cout<<"";
                     }
                     if (condition.attr1.empty() && condition.cmp == 4){
-                        if (!CMP(condition, &b.table[j], &a.table[i], lineNo2, lineNo1)) {
+                        if (!CMP(condition, b.table[j], a.table[i], lineNo2, lineNo1)) {
                             flag = 0;
                             break;
                         }
                     } else if(!condition.attr1.empty()){
-                        if (!CMP(condition, &a.table[i], &b.table[j], lineNo1, lineNo2)) {
+                        if (!CMP(condition, a.table[i], b.table[j], lineNo1, lineNo2)) {
                             flag = 0;
                             break;
                         }
@@ -851,7 +854,7 @@ namespace Exert{
                     auto tmpTuple = new Tuple(res, a.table[i], b.table[j]);
                     //updatePointer(tmpTuple, &a.table[i]);
                     //updatePointer(tmpTuple, &b.table[j]);
-                    res->table.emplace_back(std::move(*tmpTuple));
+                    res->table.emplace_back(tmpTuple);
                     //auto test = static_cast<set<Tuple*>*>(tmpTuple->attribute[2].pointerSet);
                     tot++;
                 }
@@ -957,9 +960,9 @@ void Output(RG a) {//对一个表进行输出
     for (int i=0;i<num3;i++) {
         for(int j=0;j<num1;j++) {
             if (a.attr_type[j] == 0){
-                cout << a.table[i].attribute[j].number << " ";
+                cout << a.table[i]->attribute[j].number << " ";
             } else if(a.attr_type[j] == 1) {
-                cout << (a.table[i].attribute[j].str) << " ";
+                cout << (a.table[i]->attribute[j].str) << " ";
             } else if(a.attr_type[j] == 2) {
                 cout << "Pointers" << ' ';
             } else {
@@ -967,7 +970,7 @@ void Output(RG a) {//对一个表进行输出
             }
 
         }
-        cout << "  fatherTableAddr: " << a.table[i].table;
+        cout << "  fatherTableAddr: " << a.table[i]->table;
         cout << endl;
     }
 
