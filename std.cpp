@@ -302,7 +302,7 @@ namespace Query{
     };
 
     int tot, cnt;
-    vector<RG> tables;
+    vector<RG*> tables;
     map<string, int> TableId;
     vector<vector<Edge> > G;
     vector<vector<int> > uG;
@@ -326,14 +326,14 @@ namespace Query{
             Graph g = Graphs[graphId];
             int N = g.N, M = g.M;
             for(int i = 0; i < graphN; i++) {
-                RG V = RG("V" + to_string(i), 3, N);
-                V.zero.push_back(V.name + ".id"), V.attr[V.name + ".id"] = 0, V.attr_type[0] = 0;
-                V.zero.push_back(V.name + ".in"), V.attr[V.name + ".in"] = 1, V.attr_type[1] = 2;
-                V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
-                for(int j = 0; j < N; j++) V.table[j].attribute[0].number = g.Node[j];
+                RG* V = new RG("V" + to_string(i), 3, N);
+                V -> zero.push_back(V -> name + ".id"), V -> attr[V -> name + ".id"] = 0, V -> attr_type[0] = 0;
+                V -> zero.push_back(V -> name + ".in"), V -> attr[V -> name + ".in"] = 1, V -> attr_type[1] = 2;
+                V -> zero.push_back(V -> name + ".out"), V -> attr[V -> name + ".out"] = 2, V -> attr_type[2] = 2;
+                for(int j = 0; j < N; j++) V -> table[j].attribute[0].number = g.Node[j];
                 TableId["V" + to_string(i)] = tot++;
-                uG.emplace_back(), G.emplace_back(), tables.emplace_back(std::move(V)), checkId.push_back(cnt++);
-                updateFather(tables[tables.size()-1]);
+                uG.emplace_back(), G.emplace_back(), tables.emplace_back(V), checkId.push_back(cnt++);
+                updateFather(*tables[tables.size()-1]);
             }
             for(int i = 0; i < graphM; i++) {
                 int x, y;
@@ -341,30 +341,37 @@ namespace Query{
                 JoinCondition condition1, condition2;
                 condition1.cmp = condition2 .cmp = 4;
 
-                RG E_rev = RG("E_rev" + to_string(i), 2, M);
+                RG* E_rev = new RG("E_rev" + to_string(i), 2, M);
 
-                E_rev.zero.push_back(E_rev.name + ".id"), E_rev.attr[E_rev.name + ".id"] = 0, E_rev.attr_type[0] = 0;
-                E_rev.zero.push_back(E_rev.name + ".dst"), E_rev.attr[E_rev.name + ".dst"] = 1, E_rev.attr_type[1] = 2;
+                E_rev -> zero.push_back(E_rev -> name + ".id"), E_rev -> attr[E_rev -> name + ".id"] = 0, E_rev -> attr_type[0] = 0;
+                E_rev -> zero.push_back(E_rev -> name + ".dst"), E_rev -> attr[E_rev -> name + ".dst"] = 1, E_rev -> attr_type[1] = 2;
                 TableId["E_rev" + to_string(i)] = tot;
+                cout << "xxx";
                 for(int j = 0; j < M; j++) {
                     int u = g.Edge[j].first.first;
                     int v = g.Edge[j].first.second;
                     long long id = g.Edge[j].second;
-                    E_rev.table[j].attribute[0].number = id;
-                    if (E_rev.table[j].attribute[1].pointerSet == nullptr) {
-                        E_rev.table[j].attribute[1].pointerSet = new set<Tuple*>;
+                    E_rev -> table[j].attribute[0].number = id;
+                    if (E_rev -> table[j].attribute[1].pointerSet == nullptr) {
+                        E_rev -> table[j].attribute[1].pointerSet = new set<Tuple*>;
                     }
-                    ((set<Tuple*>*)E_rev.table[j].attribute[1].pointerSet) -> insert(&tables[x].table[u]);
-                    tables[x].table[u].pointerFrom.insert(&E_rev.table[j].attribute[1]);
-                    if (tables[y].table[v].attribute[1].pointerSet == nullptr) {
-                        tables[y].table[v].attribute[1].pointerSet = new set<Tuple*>;
+                    ((set<Tuple*>*)E_rev -> table[j].attribute[1].pointerSet) -> insert(&(tables[x] -> table[u]));
+                    cout << tables.size() << ' ' << y << '\n';
+                    outputRG(*tables[x]); 
+                    cout << (tables[x] -> table).size() << ' ' << (tables[y] -> table).size() << '\n';
+                    cout << &(E_rev -> table[j].attribute[1]) << '\n';
+                    cout << "xxx";
+                    (tables[x] -> table[u]).pointerFrom.insert(&E_rev -> table[j].attribute[1]);
+                    if ((tables[y] -> table[v]).attribute[1].pointerSet == nullptr) {
+                        (tables[y] -> table[v]).attribute[1].pointerSet = new set<Tuple*>;
                     }
-                    ((set<Tuple*>*)tables[y].table[v].attribute[1].pointerSet) -> insert(&E_rev.table[j]);
-                    E_rev.table[j].pointerFrom.insert(&tables[y].table[v].attribute[1]);
+                    ((set<Tuple*>*)(tables[y] -> table[v]).attribute[1].pointerSet) -> insert(&E_rev -> table[j]);
+                    E_rev -> table[j].pointerFrom.insert(&(tables[y] -> table[v]).attribute[1]);
                 }
+                cout << "xxx";
                 uG.emplace_back(), G.emplace_back();
-                tables.push_back(std::move(E_rev));
-                updateFather(tables[tables.size()-1]);
+                tables.push_back(E_rev);
+                updateFather(*tables[tables.size()-1]);
                 checkId.push_back(cnt);
 
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
@@ -374,28 +381,28 @@ namespace Query{
                 G[tot].push_back(Edge(x, condition1));
                 tot++;
 
-                RG E_ord = RG("E_ord" + to_string(i), 2, M);
-                E_ord.zero.push_back(E_ord.name + ".id"), E_ord.attr[E_ord.name + ".id"] = 0, E_ord.attr_type[0] = 0;
-                E_ord.zero.push_back(E_ord.name + ".dst"), E_ord.attr[E_ord.name + ".dst"] = 1, E_ord.attr_type[1] = 2;
+                RG* E_ord = new RG("E_ord" + to_string(i), 2, M);
+                E_ord -> zero.push_back(E_ord -> name + ".id"), E_ord -> attr[E_ord -> name + ".id"] = 0, E_ord -> attr_type[0] = 0;
+                E_ord -> zero.push_back(E_ord -> name + ".dst"), E_ord -> attr[E_ord -> name + ".dst"] = 1, E_ord -> attr_type[1] = 2;
                 TableId["E_ord" + to_string(i)] = tot;
                 for(int j = 0; j < M; j++) {
                     int u = g.Edge[j].first.first;
                     int v = g.Edge[j].first.second;
                     long long id = g.Edge[j].second;
-                    E_ord.table[j].attribute[0].number = id;
-                    if (E_ord.table[j].attribute[1].pointerSet == nullptr) {
-                        E_ord.table[j].attribute[1].pointerSet = new set<Tuple*>;
+                    E_ord -> table[j].attribute[0].number = id;
+                    if (E_ord -> table[j].attribute[1].pointerSet == nullptr) {
+                        E_ord -> table[j].attribute[1].pointerSet = new set<Tuple*>;
                     }
-                    ((set<Tuple*>*)E_ord.table[j].attribute[1].pointerSet) -> insert(&tables[y].table[v]);
-                    tables[y].table[v].pointerFrom.insert(&E_ord.table[j].attribute[1]);
-                    if (tables[x].table[u].attribute[2].pointerSet == nullptr) {
-                        tables[x].table[u].attribute[2].pointerSet = new set<Tuple*>;
+                    ((set<Tuple*>*)E_ord -> table[j].attribute[1].pointerSet) -> insert(&(tables[y] -> table[v]));
+                    (tables[y] -> table[v]).pointerFrom.insert(&E_ord -> table[j].attribute[1]);
+                    if ((tables[x] -> table[u]).attribute[2].pointerSet == nullptr) {
+                        (tables[x] -> table[u]).attribute[2].pointerSet = new set<Tuple*>;
                     }
-                    ((set<Tuple*>*)tables[x].table[u].attribute[2].pointerSet) -> insert(&E_ord.table[j]);
-                    E_ord.table[j].pointerFrom.insert(&tables[x].table[u].attribute[2]);
+                    ((set<Tuple*>*)(tables[x] -> table[u]).attribute[2].pointerSet) -> insert(&E_ord -> table[j]);
+                    E_ord -> table[j].pointerFrom.insert(&(tables[x] -> table[u]).attribute[2]);
                 }
-                uG.emplace_back(), G.emplace_back(), tables.push_back(std::move(E_ord)), checkId.push_back(cnt++);
-                updateFather(tables[tables.size()-1]);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
+                updateFather(*tables[tables.size()-1]);
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(x) + ".out";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
@@ -404,6 +411,7 @@ namespace Query{
                 tot++;
             }
         }
+        cout << "xxxx";
         int N;
         cin >> N;
         for(int i = 1; i <= N; i++) {
@@ -414,11 +422,11 @@ namespace Query{
             string tableName2 = attr2.substr(0, attr2.find_first_of('.'));
             if(!TableId.count(tableName1)) {
                 TableId[tableName1] = tot++;
-                uG.emplace_back(), G.emplace_back(), tables.push_back(Rgs[Table[tableName1]]), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(&Rgs[Table[tableName1]]), checkId.push_back(cnt++);
             }
             if(!TableId.count(tableName2)) {
                 TableId[tableName2] = tot++;
-                uG.emplace_back(), G.emplace_back(), tables.push_back(Rgs[Table[tableName2]]), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(&Rgs[Table[tableName2]]), checkId.push_back(cnt++);
             }
             // cout << tableName1 << ' ' << tableName2 << '\n';
             // for(auto [name, id] : TableId) cout << name << ' ' << id << '\n';
@@ -770,6 +778,7 @@ namespace Exert{
         return res;
     }
     RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions) { // simple n^2 join, slow but right
+        outputRG(a), outputRG(b);
         tmpTableCnt++;
         string name = "__tmpTable" + to_string(tmpTableCnt);
         int tot = 0;
@@ -872,7 +881,7 @@ RG *Calc(int S, vector<string> attr) {
     if((S & (S - 1)) == 0) {//如果S是一个二进制数，就是简单的那个表
         int temp = log2(S);
         // temp--;
-        return &(Query::tables[temp]);
+        return (Query::tables[temp]);
     }
     else {
         Step now = Query::Plan[S];//Plan的每一个元素是一个step
@@ -1034,11 +1043,11 @@ int main() {
     Init :: Init();
     //Debug::testExert();
     Query :: Query();
-    outputRG(Query::tables[Query::TableId["V0"]]);
+    outputRG(*Query::tables[Query::TableId["V0"]]);
     cout<<endl<<endl;
-    outputRG(Query::tables[Query::TableId["E_ord0"]]);
+    outputRG(*Query::tables[Query::TableId["E_ord0"]]);
     cout<<endl<<endl;
-    outputRG(Query::tables[Query::TableId["E_rev0"]]);
+    outputRG(*Query::tables[Query::TableId["E_rev0"]]);
     cout<<endl<<endl;
     cout << Query :: best << '\n';
     vector<string> readattr;
