@@ -31,7 +31,7 @@ public:
     vector<Attr> attribute;
     set<Attr*> pointerFrom;
 
-    explicit Tuple (void* fa, int num1 = 0) {
+    Tuple (void* fa, int num1 = 0) {
         table = fa;
         attribute.resize(num1);
         for (int i = 0; i < num1; i++) {
@@ -83,13 +83,22 @@ void outputRG(RG &a) {
     }
     cout << endl;
     for (int i=0;i<num3;i++) {
+        cout<<"tupleAddr: "<<&(a.table[i])<<" ";
         for(int j=0;j<num1;j++) {
             if (a.attr_type[j] == 0){
                 cout << a.table[i].attribute[j].number << " ";
             } else if(a.attr_type[j] == 1) {
                 cout << (a.table[i].attribute[j].str) << " ";
             } else if(a.attr_type[j] == 2) {
-                cout << "Pointers" << ' ';
+                cout << "Pointers to" << ' ';
+                auto ps = static_cast<set<Tuple*>*>(a.table[i].attribute[j].pointerSet);
+                if (ps == nullptr) {
+                    cout<<" empty!"<<endl;
+                    continue;
+                }
+                for(auto i : (*ps)){
+                    cout<< (i->table)<<" ";
+                }
             } else {
                     cout << " Unknown attribute type! " ;
             }
@@ -152,6 +161,7 @@ void updatePointer(Tuple *a, Tuple * ori) {
         auto ps = static_cast<set<Tuple*>*>(i->pointerSet);
         ps->erase(ori);
         ps->insert(a);
+        cout<<"";
     }
 }
 
@@ -202,7 +212,7 @@ namespace Init{
                 }
             }
             Table[now.name] = Rgs.size();
-            Rgs.push_back(now);
+            Rgs.push_back(std::move(now));
         }
     }
 
@@ -315,7 +325,7 @@ namespace Query{
                 V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
                 for(int j = 0; j < N; j++) V.table[j].attribute[0].number = g.Node[j];
                 TableId["V" + to_string(i)] = tot++;
-                uG.emplace_back(), G.emplace_back(), tables.push_back(V), checkId.push_back(cnt++);
+                uG.emplace_back(), G.emplace_back(), tables.push_back(std::move(V)), checkId.push_back(cnt++);
             }
             for(int i = 0; i < graphM; i++) {
                 int x, y;
@@ -606,8 +616,12 @@ namespace Exert{
 
         for (int i = 0; i < num3; i++) {
             auto tmpTuple = new Tuple(res, num1);
+            tmpTuple->pointerFrom.insert(R.table[i].pointerFrom.begin(), R.table[i].pointerFrom.end());
             for (int j = 0; j < num1; j++) {
                 (*tmpTuple).attribute[j] = R.table[i].attribute[selected_attr[j]];
+            }
+            if(res->name == "__tmpTable4") {
+                cout<< "stop here"<<endl;
             }
             updatePointer(tmpTuple,&(R.table[i]));
             res->table[i] = *tmpTuple;
@@ -696,6 +710,7 @@ namespace Exert{
             }
             case 4:{
                 if (a.attribute[lineNo1].pointerSet != nullptr) {
+                    auto s = static_cast<set<Tuple*>*>(a.attribute[lineNo1].pointerSet);
                     if ((*((set<Tuple*>*)(a.attribute[lineNo1].pointerSet))).count((Tuple*)&b) == 1) {
                         return true;
                     }
@@ -783,6 +798,9 @@ namespace Exert{
                     }
                     // cout << "a.table[i] addr" << &a.table[i] << " b: " << &b.table[j]<<endl;
                     cout << "Join CMP:" << a.name <<" "<< b.name <<endl;
+                    if (a.name == "__tmpTable2"){
+                        cout<<"";
+                    }
                     if (condition.attr1.empty() && condition.cmp == 4){
                         if (!CMP(condition, &b.table[j], &a.table[i], lineNo2, lineNo1)) {
                             flag = 0;
@@ -801,9 +819,10 @@ namespace Exert{
                 if (flag) {
                     assert(res->attr.size()==a.num1+b.num1);
                     auto tmpTuple = new Tuple(res, a.table[i], b.table[j]);
-                    updatePointer(tmpTuple, &a.table[i]);
-                    updatePointer(tmpTuple, &b.table[j]);
+                    //updatePointer(tmpTuple, &a.table[i]);
+                    //updatePointer(tmpTuple, &b.table[j]);
                     res->table.push_back(*tmpTuple);
+                    auto test = static_cast<set<Tuple*>*>(tmpTuple->attribute[2].pointerSet);
                     tot++;
                 }
             }
@@ -824,6 +843,8 @@ RG *Do(RG *a, RG *b, vector<JoinCondition> c, vector<string> d) {
     //*temp;
     
     RG *result = Selectcolumn(*temp, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
+    outputRG(*result);
+    cout<<endl<<endl;
     return result;
 }
 
@@ -1002,7 +1023,8 @@ int main() {
     Init :: Init();
     //Debug::testExert();
     Query :: Query();
-
+    outputRG(Query::tables[Query::TableId["V0"]]);
+    cout<<endl<<endl;
     cout << Query :: best << '\n';
     vector<string> readattr;
     readattr.emplace_back("table1.name");
