@@ -74,6 +74,17 @@ public:
     }
 };
 
+void InsertNewAttr(RG *now, string name, int type) {
+    now -> num1++;
+    now -> zero.push_back(name);
+    now -> attr[name] = (now -> num1) - 1;
+    now -> attr_type[(now -> num1) - 1] = 2;
+    for(auto o : now -> table) {
+        o -> num1++;
+        o -> attribute.push_back({});
+    }
+}
+
 void outputRG(RG &a) {
     int num1 = a.num1; // attr
     int num3 = a.num3; // tuple
@@ -336,10 +347,8 @@ namespace Query{
             Graph g = Graphs[graphId];
             int N = g.N, M = g.M;
             for(int i = 0; i < graphN; i++) {
-                RG* V = new RG("V" + to_string(i), 3, N);
+                RG* V = new RG("V" + to_string(i), 1, N);
                 V -> zero.push_back(V -> name + ".id"), V -> attr[V -> name + ".id"] = 0, V -> attr_type[0] = 0;
-                V -> zero.push_back(V -> name + ".in"), V -> attr[V -> name + ".in"] = 1, V -> attr_type[1] = 2;
-                V -> zero.push_back(V -> name + ".out"), V -> attr[V -> name + ".out"] = 2, V -> attr_type[2] = 2;
                 for(int j = 0; j < N; j++) V -> table[j]->attribute[0].number = g.Node[j];
                 TableId["V" + to_string(i)] = tot++;
                 uG.emplace_back(), G.emplace_back(), tables.emplace_back(V), checkId.push_back(cnt++);
@@ -356,6 +365,19 @@ namespace Query{
                 E_rev -> zero.push_back(E_rev -> name + ".id"), E_rev -> attr[E_rev -> name + ".id"] = 0, E_rev -> attr_type[0] = 0;
                 E_rev -> zero.push_back(E_rev -> name + ".dst"), E_rev -> attr[E_rev -> name + ".dst"] = 1, E_rev -> attr_type[1] = 2;
                 TableId["E_rev" + to_string(i)] = tot;
+
+                InsertNewAttr(tables[x], "V" + to_string(x) + "E" + to_string(i) + ".out", 2);
+                InsertNewAttr(tables[y], "V" + to_string(y) + "E" + to_string(i) + ".in", 2);
+
+                // tables[x] -> num1++, tables[y] -> num1++; 
+                // tables[x] -> zero.push_back();
+                // tables[x] -> attr["V" + to_string(x) + "E" + to_string(i) + ".out"] = (tables[x] -> num1) - 1;
+                // tables[x] -> attr_type[(tables[x] -> num1) - 1] = 2;
+
+                // tables[y] -> zero.push_back("V" + to_string(y) + "E" + to_string(i) + ".in");
+                // tables[y] -> attr["V" + to_string(y) + "E" + to_string(i) + ".in"] = (tables[y] -> num1) - 1;
+                // tables[y] -> attr_type[(tables[y] -> num1) - 1] = 2;
+
                 // cout << "xxx";
                 for(int j = 0; j < M; j++) {
                     int u = g.Edge[j].first.first;
@@ -366,17 +388,12 @@ namespace Query{
                         E_rev -> table[j]->attribute[1].pointerSet = new set<Tuple*>;
                     }
                     static_cast<set<Tuple*>*>(E_rev -> table[j]->attribute[1].pointerSet) -> insert((tables[x] -> table[u]));
-                    // cout << tables.size() << ' ' << y << '\n';
-                    // outputRG(*tables[x]); 
-                    // cout << (tables[x] -> table).size() << ' ' << (tables[y] -> table).size() << '\n';
-                    // cout << &(E_rev -> table[j]->attribute[1]) << '\n';
-                    // cout << "xxx";
                     (tables[x] -> table[u])->pointerFrom.insert(&E_rev -> table[j]->attribute[1]);
-                    if ((tables[y] -> table[v])->attribute[1].pointerSet == nullptr) {
-                        (tables[y] -> table[v])->attribute[1].pointerSet = new set<Tuple*>;
+                    if ((tables[y] -> table[v])->attribute.back().pointerSet == nullptr) {
+                        (tables[y] -> table[v])->attribute.back().pointerSet = new set<Tuple*>;
                     }
-                    static_cast<set<Tuple*>*>((tables[y] -> table[v])->attribute[1].pointerSet) -> insert(E_rev -> table[j]);
-                    E_rev -> table[j]->pointerFrom.insert(&(tables[y] -> table[v])->attribute[1]);
+                    static_cast<set<Tuple*>*>((tables[y] -> table[v])->attribute.back().pointerSet) -> insert(E_rev -> table[j]);
+                    E_rev -> table[j]->pointerFrom.insert(&(tables[y] -> table[v])->attribute.back());
                 }
                 // cout << "xxx";
                 uG.emplace_back(), G.emplace_back();
@@ -385,7 +402,7 @@ namespace Query{
                 checkId.push_back(cnt);
 
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
-                condition2.attr1 = "V" + to_string(y) + ".in";
+                condition2.attr1 = "V" + to_string(y) + "E" + to_string(i) + ".in";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
                 G[y].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(x, condition1));
@@ -406,16 +423,16 @@ namespace Query{
                     static_cast<set<Tuple*>*>(E_ord -> table[j]->attribute[1].pointerSet)->insert(tables[y]->table[v]);
 //                    ((set<Tuple*>*)E_ord -> table[j]->attribute[1].pointerSet) -> insert((tables[y] -> table[v]));
                     (tables[y] -> table[v])->pointerFrom.insert(&E_ord -> table[j]->attribute[1]);
-                    if ((tables[x] -> table[u])->attribute[2].pointerSet == nullptr) {
-                        (tables[x] -> table[u])->attribute[2].pointerSet = new set<Tuple*>;
+                    if ((tables[x] -> table[u])->attribute.back().pointerSet == nullptr) {
+                        (tables[x] -> table[u])->attribute.back().pointerSet = new set<Tuple*>;
                     }
-                    static_cast<set<Tuple*>*>((tables[x] -> table[u])->attribute[2].pointerSet) -> insert(E_ord -> table[j]);
-                    E_ord -> table[j]->pointerFrom.insert(&(tables[x] -> table[u])->attribute[2]);
+                    static_cast<set<Tuple*>*>((tables[x] -> table[u])->attribute.back().pointerSet) -> insert(E_ord -> table[j]);
+                    E_ord -> table[j]->pointerFrom.insert(&(tables[x] -> table[u])->attribute.back());
                 }
                 uG.emplace_back(), G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
                 updateFather(*tables[tables.size()-1]);
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
-                condition2.attr1 = "V" + to_string(x) + ".out";
+                condition2.attr1 = "V" + to_string(x) + "E" + to_string(i) + ".out";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
                 G[x].push_back(Edge(tot, condition2));
                 G[tot].push_back(Edge(y, condition1));
@@ -1100,6 +1117,7 @@ int main() {
     readattr.emplace_back("V0.id");
     readattr.emplace_back("V1.id");
     readattr.emplace_back("V2.id");
+    readattr.emplace_back("table1.name");
 
         string input;
         getline(cin, input);  // 从控制台读入一行输入
