@@ -24,11 +24,11 @@ public:
     vector<Attr*> attribute;
     set<Attr*> pointerFrom;
 
-    Tuple (void* fa, int num1 = 0) {
+    explicit Tuple (void* fa, int num1 = 0) {
         table = fa;
-        attribute.resize(num1);
+//        attribute.resize(num1);
         for (int i = 0; i < num1; i++) {
-            attribute[i]->number = 0;
+            attribute.emplace_back(new Attr());
         }
         pointerFrom.clear();
         this->num1 = num1;
@@ -74,7 +74,7 @@ void InsertNewAttr(RG *now, string name, int type) {
     now -> attr_type[(now -> num1) - 1] = 2;
     for(auto o : now -> table) {
         o -> num1++;
-        o -> attribute.push_back({});
+        o -> attribute.push_back(new Attr());
     }
 }
 
@@ -794,7 +794,7 @@ namespace Exert{
             flag = 1;
             for (auto & condition : conditions) {
                 int lineNo = R.attr[condition.attr];
-                if(!CMP(condition, R.table[i], lineNo)) {
+                if(!CMP(condition, *R.table[i], lineNo)) {
                     flag = 0;
                     break;
                 }
