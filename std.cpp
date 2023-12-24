@@ -17,25 +17,18 @@ union Attr{
     void* pointerSet;
 };
 
-class CompareTuple {
-public:
-    bool operator()(const void *a, const void *b){
-        return a < b; // careful, compare address
-    }
-};
-
 class Tuple{
 public:
     int num1; // number of attribute
     void* table; // use  (RG*) to convert!!
-    vector<Attr> attribute;
+    vector<Attr*> attribute;
     set<Attr*> pointerFrom;
 
     Tuple (void* fa, int num1 = 0) {
         table = fa;
         attribute.resize(num1);
         for (int i = 0; i < num1; i++) {
-            attribute[i].number = 0;
+            attribute[i]->number = 0;
         }
         pointerFrom.clear();
         this->num1 = num1;
@@ -97,12 +90,12 @@ void outputRG(RG &a) {
         cout<<"tupleAddr: "<<&(a.table[i])<<" ";
         for(int j=0;j<num1;j++) {
             if (a.attr_type[j] == 0){
-                cout << a.table[i]->attribute[j].number << " ";
+                cout << a.table[i]->attribute[j]->number << " ";
             } else if(a.attr_type[j] == 1) {
-                cout << (a.table[i]->attribute[j].str) << " ";
+                cout << (a.table[i]->attribute[j]->str) << " ";
             } else if(a.attr_type[j] == 2) {
                 cout << "Pointers to:" << ' ';
-                auto ps = static_cast<set<Tuple*>*>(a.table[i]->attribute[j].pointerSet);
+                auto ps = static_cast<set<Tuple*>*>(a.table[i]->attribute[j]->pointerSet);
                 if (ps == nullptr) {
                     cout<<" empty! ";
                     continue;
@@ -230,10 +223,10 @@ namespace Init{
             for (int j = 0; j < num3; j++) {
                 for (int k = 0; k < num1; k++) {
                     if(now.attr_type[k] == 0) {
-                        cin >> now.table[j]->attribute[k].number;
+                        cin >> now.table[j]->attribute[k]->number;
                     } else {
-                        now.table[j]->attribute[k].str = new char();
-                        cin >> now.table[j]->attribute[k].str;
+                        now.table[j]->attribute[k]->str = new char();
+                        cin >> now.table[j]->attribute[k]->str;
                         // use cin to deal with input for char* type may cause error!!!!!
                         // already fixed at 23.12.1
                     }
@@ -349,7 +342,7 @@ namespace Query{
             for(int i = 0; i < graphN; i++) {
                 RG* V = new RG("V" + to_string(i), 1, N);
                 V -> zero.push_back(V -> name + ".id"), V -> attr[V -> name + ".id"] = 0, V -> attr_type[0] = 0;
-                for(int j = 0; j < N; j++) V -> table[j]->attribute[0].number = g.Node[j];
+                for(int j = 0; j < N; j++) V -> table[j]->attribute[0]->number = g.Node[j];
                 TableId["V" + to_string(i)] = tot++;
                 uG.emplace_back(), G.emplace_back(), tables.emplace_back(V), checkId.push_back(cnt++);
                 updateFather(*tables[tables.size()-1]);
@@ -383,17 +376,17 @@ namespace Query{
                     int u = g.Edge[j].first.first;
                     int v = g.Edge[j].first.second;
                     long long id = g.Edge[j].second;
-                    E_rev -> table[j]->attribute[0].number = id;
-                    if (E_rev -> table[j]->attribute[1].pointerSet == nullptr) {
-                        E_rev -> table[j]->attribute[1].pointerSet = new set<Tuple*>;
+                    E_rev -> table[j]->attribute[0]->number = id;
+                    if (E_rev -> table[j]->attribute[1]->pointerSet == nullptr) {
+                        E_rev -> table[j]->attribute[1]->pointerSet = new set<Tuple*>;
                     }
-                    static_cast<set<Tuple*>*>(E_rev -> table[j]->attribute[1].pointerSet) -> insert((tables[x] -> table[u]));
-                    (tables[x] -> table[u])->pointerFrom.insert(&E_rev -> table[j]->attribute[1]);
-                    if ((tables[y] -> table[v])->attribute.back().pointerSet == nullptr) {
-                        (tables[y] -> table[v])->attribute.back().pointerSet = new set<Tuple*>;
+                    static_cast<set<Tuple*>*>(E_rev -> table[j]->attribute[1]->pointerSet) -> insert((tables[x] -> table[u]));
+                    (tables[x] -> table[u])->pointerFrom.insert(E_rev -> table[j]->attribute[1]);
+                    if ((tables[y] -> table[v])->attribute.back()->pointerSet == nullptr) {
+                        (tables[y] -> table[v])->attribute.back()->pointerSet = new set<Tuple*>;
                     }
-                    static_cast<set<Tuple*>*>((tables[y] -> table[v])->attribute.back().pointerSet) -> insert(E_rev -> table[j]);
-                    E_rev -> table[j]->pointerFrom.insert(&(tables[y] -> table[v])->attribute.back());
+                    static_cast<set<Tuple*>*>((tables[y] -> table[v])->attribute.back()->pointerSet) -> insert(E_rev -> table[j]);
+                    E_rev -> table[j]->pointerFrom.insert((tables[y] -> table[v])->attribute.back());
                 }
                 // cout << "xxx";
                 uG.emplace_back(), G.emplace_back();
@@ -416,18 +409,18 @@ namespace Query{
                     int u = g.Edge[j].first.first;
                     int v = g.Edge[j].first.second;
                     long long id = g.Edge[j].second;
-                    E_ord -> table[j]->attribute[0].number = id;
-                    if (E_ord -> table[j]->attribute[1].pointerSet == nullptr) {
-                        E_ord -> table[j]->attribute[1].pointerSet = new set<Tuple*>;
+                    E_ord -> table[j]->attribute[0]->number = id;
+                    if (E_ord -> table[j]->attribute[1]->pointerSet == nullptr) {
+                        E_ord -> table[j]->attribute[1]->pointerSet = new set<Tuple*>;
                     }
-                    static_cast<set<Tuple*>*>(E_ord -> table[j]->attribute[1].pointerSet)->insert(tables[y]->table[v]);
+                    static_cast<set<Tuple*>*>(E_ord -> table[j]->attribute[1]->pointerSet)->insert(tables[y]->table[v]);
 //                    ((set<Tuple*>*)E_ord -> table[j]->attribute[1].pointerSet) -> insert((tables[y] -> table[v]));
-                    (tables[y] -> table[v])->pointerFrom.insert(&E_ord -> table[j]->attribute[1]);
-                    if ((tables[x] -> table[u])->attribute.back().pointerSet == nullptr) {
-                        (tables[x] -> table[u])->attribute.back().pointerSet = new set<Tuple*>;
+                    (tables[y] -> table[v])->pointerFrom.insert(E_ord -> table[j]->attribute[1]);
+                    if ((tables[x] -> table[u])->attribute.back()->pointerSet == nullptr) {
+                        (tables[x] -> table[u])->attribute.back()->pointerSet = new set<Tuple*>;
                     }
-                    static_cast<set<Tuple*>*>((tables[x] -> table[u])->attribute.back().pointerSet) -> insert(E_ord -> table[j]);
-                    E_ord -> table[j]->pointerFrom.insert(&(tables[x] -> table[u])->attribute.back());
+                    static_cast<set<Tuple*>*>((tables[x] -> table[u])->attribute.back()->pointerSet) -> insert(E_ord -> table[j]);
+                    E_ord -> table[j]->pointerFrom.insert((tables[x] -> table[u])->attribute.back());
                 }
                 uG.emplace_back(), G.emplace_back(), tables.push_back(E_ord), checkId.push_back(cnt++);
                 updateFather(*tables[tables.size()-1]);
@@ -695,7 +688,7 @@ namespace Exert{
             return false;
         }
         char *con = (char*)malloc(4);
-        Attr* be = new Attr(a.attribute[lineNo]);
+        Attr* be = new Attr(*a.attribute[lineNo]);
         strcpy(con,condition.value);
         switch (cmpop){
             case 0:{
@@ -735,11 +728,11 @@ namespace Exert{
         int cmpop = condition.cmp;
         Attr* av;
         if (lineNo1 != -1) {
-            av = new Attr(a.attribute[lineNo1]);
+            av = new Attr(*a.attribute[lineNo1]);
         }
         Attr* bv;
         if (lineNo2 != -1) {
-            bv = new Attr(b.attribute[lineNo2]);
+            bv = new Attr(*b.attribute[lineNo2]);
         }
         if (cmpop !=4 && (lineNo1 ==-1 || lineNo2==-1)) cout<<"Join wrong: no such attr in no-edge join!"<<endl;
         switch (cmpop) {
@@ -768,9 +761,9 @@ namespace Exert{
                 break;
             }
             case 4:{
-                if (a.attribute[lineNo1].pointerSet != nullptr) {
-                    auto s = static_cast<set<Tuple*>*>(a.attribute[lineNo1].pointerSet);
-                    if ((*((set<Tuple*>*)(a.attribute[lineNo1].pointerSet))).count((Tuple*)&b) == 1) {
+                if (a.attribute[lineNo1]->pointerSet != nullptr) {
+                    auto s = static_cast<set<Tuple*>*>(a.attribute[lineNo1]->pointerSet);
+                    if ((*((set<Tuple*>*)(a.attribute[lineNo1]->pointerSet))).count((Tuple*)&b) == 1) {
                         return true;
                     }
                 }
@@ -998,9 +991,9 @@ void Output(RG a) {//对一个表进行输出
     for (int i=0;i<num3;i++) {
         for(int j=0;j<num1;j++) {
             if (a.attr_type[j] == 0){
-                cout << a.table[i]->attribute[j].number << " ";
+                cout << a.table[i]->attribute[j]->number << " ";
             } else if(a.attr_type[j] == 1) {
-                cout << (a.table[i]->attribute[j].str) << " ";
+                cout << (a.table[i]->attribute[j]->str) << " ";
             } else if(a.attr_type[j] == 2) {
                 cout << "Pointers" << ' ';
             } else {
@@ -1023,17 +1016,17 @@ namespace Debug {
     void testUpdatePointer() {
         RG *test = new RG("testRG", 123, 1);
         auto *a = new Tuple(test, 2);
-        a->attribute[0].number = 123;
+        a->attribute[0]->number = 123;
         auto *b = new Tuple(test, 2);
-        b->attribute[0].number = 234;
+        b->attribute[0]->number = 234;
         auto *c = new Tuple(test, 2);
-        (a->attribute[1].pointerSet) = new set<Tuple*>();
-        auto ss = ((set<Tuple*>*)(a->attribute[1].pointerSet));
+        (a->attribute[1]->pointerSet) = new set<Tuple*>();
+        auto ss = ((set<Tuple*>*)(a->attribute[1]->pointerSet));
         cout << b<<endl;
         ss->insert(b); // 1:out
         b->pointerFrom.insert((Attr*)&(a->attribute[1]));
         updatePointer(c,b);
-        cout<<"AtoC? :" <<((set<Tuple*>*)(a->attribute[1].pointerSet))->count(c)<<endl;
+        cout<<"AtoC? :" <<((set<Tuple*>*)(a->attribute[1]->pointerSet))->count(c)<<endl;
     }
    
     void testExert(){
