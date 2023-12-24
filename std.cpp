@@ -1119,16 +1119,17 @@ int main() {
     readattr.emplace_back("V2.id");
     readattr.emplace_back("table1.name");
 
-        string input;
-        getline(cin, input);  // 从控制台读入一行输入
-        istringstream iss(input);
-        string token;
-        while (getline(iss, token, ' ')) {
-            readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
-        }
+    getchar();
+    string input;
+    getline(cin, input);  // 从控制台读入一行输入
+    istringstream iss(input);
+    string token;
+    while (getline(iss, token, ' ')) {
+        readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
+    }
 
-        RG *result = Calc(Query::best, readattr);//我从这儿开始改
-        outputRG(*result);
+    RG *result = Calc(Query::best, readattr);//我从这儿开始改
+    outputRG(*result);
     //  Output(*result);
 
     return 0;
