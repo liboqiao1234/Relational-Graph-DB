@@ -23,7 +23,6 @@ public:
     void* table; // use  (RG*) to convert!!
     vector<Attr*> attribute;
     set<Attr*> pointerFrom;
-
     explicit Tuple (void* fa, int num1 = 0) {
         table = fa;
 //        attribute.resize(num1);
@@ -34,11 +33,12 @@ public:
         this->num1 = num1;
     }
     Tuple (void *fa, Tuple *a, Tuple *b);
+    Tuple (const Tuple& t) = default;
 };
 
 class Graph{
 public:
-    int N, M;
+    int N{}, M{};
     vector<long long> Node;
     vector<pair<pair<int, int>, long long>> Edge;
 };
@@ -61,13 +61,13 @@ public:
         for (int i = 0; i < num3; i++) {
             table.emplace_back(new Tuple(this, num1));
         }
-        this->name = name;
+        this->name = std::move(name);
         this->num1 = num1;
         this->num3 = num3;
     }
 };
 
-void InsertNewAttr(RG *now, string name, int type) {
+void InsertNewAttr(RG *now, const string& name, int type) {
     now -> num1++;
     now -> zero.push_back(name);
     now -> attr[name] = (now -> num1) - 1;
@@ -82,7 +82,7 @@ void outputRG(RG &a) {
     int num1 = a.num1; // attr
     int num3 = a.num3; // tuple
     cout << a.name << " addr:" << &a <<endl;
-    for (auto i:a.zero) {
+    for (const auto& i:a.zero) {
         cout << i << ' ';
     }
     cout << endl;
@@ -100,8 +100,8 @@ void outputRG(RG &a) {
                     cout<<" empty! ";
                     continue;
                 }
-                for(auto i : (*ps)){
-                    cout<<(i)<<" ";
+                for(auto item : (*ps)){
+                    cout << (item) << " ";
                 }
 
             } else {
@@ -151,11 +151,6 @@ long long toNum(const char *value) {
     return res * flag;
 }
 
-string getAttrName(const string& AttrName) { // to split real AttrName from "TableName.AttrName"
-    int loc = AttrName.find('.');
-    string res = AttrName.substr(loc + 1, AttrName.npos);
-    return res;
-}
 
 void updatePointer(Tuple *a, Tuple * ori) {
     for(auto &i:ori->pointerFrom) {
@@ -175,8 +170,8 @@ void updatePointer(Tuple *a, Tuple * ori) {
 }
 
 Tuple::Tuple (void *fa, Tuple *aa, Tuple *bb) { // a+b
-    Tuple a = *aa;
-    Tuple b = *bb;
+    Tuple &a = *aa;
+    Tuple &b = *bb;
     table = fa;
     num1 = a.num1 + b.num1;
     attribute.resize(a.num1 + b.num1);
@@ -195,6 +190,7 @@ Tuple::Tuple (void *fa, Tuple *aa, Tuple *bb) { // a+b
     updatePointer(this, &b); // 不确定是否有bug！
     // cout<<endl<<endl;
 }
+
 
 void updateFather(RG &t) {
     for(int i=0;i<t.num3;i++) {
@@ -267,7 +263,7 @@ namespace Init{
                 cin >> x >> y >> id;
                 x--;
                 y--;
-                now.Edge.push_back(make_pair(make_pair(x, y), id));
+                now.Edge.emplace_back(make_pair(x, y), id);
                 // E_in.table[j].attribute[0].number = id;
                 // //void * tmp = E_in.table[j].attribute[1].pointerSet;
 
@@ -397,8 +393,8 @@ namespace Query{
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(y) + "E" + to_string(i) + ".in";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
-                G[y].push_back(Edge(tot, condition2));
-                G[tot].push_back(Edge(x, condition1));
+                G[y].emplace_back(tot, condition2);
+                G[tot].emplace_back(x, condition1);
                 tot++;
 
                 RG* E_ord = new RG("E_ord" + to_string(i), 2, M);
@@ -427,8 +423,8 @@ namespace Query{
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(x) + "E" + to_string(i) + ".out";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
-                G[x].push_back(Edge(tot, condition2));
-                G[tot].push_back(Edge(y, condition1));
+                G[x].emplace_back(tot, condition2);
+                G[tot].emplace_back(y, condition1);
                 tot++;
             }
         }
@@ -458,7 +454,7 @@ namespace Query{
             condition.attr2 = attr2;
             condition.cmp = cmp;
             uG[x].push_back(y), uG[y].push_back(x);
-            G[x].push_back(Edge(y, condition));
+            G[x].emplace_back(y, condition);
         }
     }
 
@@ -508,7 +504,7 @@ namespace Query{
         }
         if(S1 == 18 && S2 == 324) {
             cout << S1 << ' ' << S2 << '\n';
-            for(auto o : res.conditions) cout << o.attr1 <<  " " << o.attr2 << ' ' << o.cmp << '\n';
+            for(const auto& o : res.conditions) cout << o.attr1 <<  " " << o.attr2 << ' ' << o.cmp << '\n';
         }
         return res;
     }
@@ -531,21 +527,21 @@ namespace Query{
     }
 
     void EnumerateCmpRec(int S1, int S2, int X) {
-        int N = Neighbor(S2, X);
-        for(int s = N; s ; s = (s - 1) & N) {
+        int NN = Neighbor(S2, X);
+        for(int s = NN; s ; s = (s - 1) & NN) {
             if(Plan[S2 | s].S1)
                 EmitCsgCmp(S1, S2 | s);
         }
-        X |= N;
-        for(int s = N; s ; s = (s - 1) & N) {
+        X |= NN;
+        for(int s = NN; s ; s = (s - 1) & NN) {
             EnumerateCmpRec(S1, S2 | s, X);
         }
     }
 
     void EmitCsg(int S1) {
         int X = S1 | B(Min(S1));
-        int N = Neighbor(S1, X);
-        for(int i = tot - 1; i>= 0; i--) if(N >> i & 1) {
+        int NN = Neighbor(S1, X);
+        for(int i = tot - 1; i>= 0; i--) if(NN >> i & 1) {
             int S2 = 1 << i;
             EmitCsgCmp(S1, S2);
             EnumerateCmpRec(S1, S2, X);
@@ -553,13 +549,13 @@ namespace Query{
     }
 
     void EnumerateCsgRec(int S1, int X) {
-        int N = Neighbor(S1, X);
-        for(int s = N; s ; s = (s - 1) & N) {
+        int NN = Neighbor(S1, X);
+        for(int s = NN; s ; s = (s - 1) & NN) {
             if(Plan[S1 | s].S1)
                 EmitCsg(S1 | s);
         }
 
-        for(int s = N; s ; s = (s - 1) & N)
+        for(int s = NN; s ; s = (s - 1) & NN)
             EnumerateCsgRec(S1 | s, X | Neighbor(S1, X));
     }
 
@@ -632,6 +628,35 @@ table1.name
 };
 
 namespace Exert{
+    int sampleCnt = 0;
+    RG* Sampling(RG &R, double ratio) {
+        srand(time(0));
+        sampleCnt++;
+        int maxNum = R.num3;
+        int num3 = static_cast<int>(ceil(maxNum * ratio));
+        auto res = new RG("Sample"+ to_string(sampleCnt), R.num1, 0);
+        set<int>vis = {};
+        int num = -1;// num is the random number;
+        res->num3 = num3;
+        while(num3) {
+            // generate random
+            num = static_cast<int>(fabs(rand()*rand())) % maxNum;
+            // check validity
+            if(vis.count(num)!=0) {
+                continue;
+            }
+            vis.insert(num);
+            Tuple* tmpSample = new Tuple(*R.table[num]);
+            res->table.emplace_back(tmpSample);
+            num3--;
+            cout << "Sampling: get " << R.table[num] << " copy to Addr: " << &tmpSample <<endl;
+        }
+        // Bugs: deep copy construct
+
+        // todo: Implement deep copy of Attr/Tuple
+        return res;
+    }
+
     RG* Projection(RG &R, vector<string> attrs1) { // if const R, can't access the R.attr[]
         // attrs include the RGName!!!!!!!!!!!!!! f**k...
         vector<string> attrs;
@@ -892,7 +917,7 @@ namespace Exert{
 };
 
 RG *Selectcolumn(RG &a, vector<string> b) {
-    RG* result = Exert::Projection(a, b);
+    RG* result = Exert::Projection(a, std::move(b));
     return result;
 }
 
@@ -908,7 +933,7 @@ RG *Do(RG *a, RG *b, vector<JoinCondition> c, vector<string> d) {
     // here tmp2 should change pointer for the first time
     cout<<"Before projection"<<endl;
     outputRG(*temp);
-    RG *result = Selectcolumn(*temp, d);//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
+    RG *result = Selectcolumn(*temp, std::move(d));//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
     // here tmp2 should be changed again
     outputRG(*result);
     cout<<endl<<endl;
@@ -953,10 +978,10 @@ RG *Calc(int S, vector<string> attr) {
             attr2.emplace_back(str2);
         }
         cout << S << '\n';
-        for(auto o : now.conditions) {
+        for(const auto& o : now.conditions) {
             cout << o.attr1 << ' ' << o.attr2 << ' ' << o.cmp << '\n';
         }
-        for(auto o : attr) cout << o << ' ';
+        for(const auto& o : attr) cout << o << ' ';
         cout << '\n';
 
         RG *s1 = Calc(S1, attr1);
@@ -984,7 +1009,7 @@ void Output(RG a) {//对一个表进行输出
 
     // 输出到控制台和文件
     cout << a.name << " addr:" << &a <<endl;
-    for (auto i : a.zero) {
+    for (const auto& i : a.zero) {
         cout << i << ' ';
     }
     cout << endl;
@@ -1095,16 +1120,15 @@ namespace Debug {
 };
 
 int main() {
-    // setbuf(stdout, NULL); // for CLion user UUQ
     Init :: Init();
-    //Debug::testExert();
     Query :: Query();
-    outputRG(*Query::tables[Query::TableId["V0"]]);
-    cout<<endl<<endl;
-    outputRG(*Query::tables[Query::TableId["E_ord0"]]);
-    cout<<endl<<endl;
-    outputRG(*Query::tables[Query::TableId["E_rev0"]]);
-    cout<<endl<<endl;
+//    outputRG(*Exert::Sampling(Rgs[0],0.5));
+//    outputRG(*Query::tables[Query::TableId["V0"]]);
+//    cout<<endl<<endl;
+//    outputRG(*Query::tables[Query::TableId["E_ord0"]]);
+//    cout<<endl<<endl;
+//    outputRG(*Query::tables[Query::TableId["E_rev0"]]);
+//    cout<<endl<<endl;
     cout << Query :: best << '\n';
     vector<string> readattr;
     readattr.emplace_back("V0.id");
