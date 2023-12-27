@@ -1,7 +1,4 @@
 #include<bits/stdc++.h>
-
-#include <utility>
-
 using namespace std;
 
 int n; // number of table
@@ -23,6 +20,7 @@ public:
     void* table; // use  (RG*) to convert!!
     vector<Attr*> attribute;
     set<Attr*> pointerFrom;
+
     explicit Tuple (void* fa, int num1 = 0) {
         table = fa;
 //        attribute.resize(num1);
@@ -33,12 +31,11 @@ public:
         this->num1 = num1;
     }
     Tuple (void *fa, Tuple *a, Tuple *b);
-    Tuple (const Tuple& t) = default;
 };
 
 class Graph{
 public:
-    int N{}, M{};
+    int N, M;
     vector<long long> Node;
     vector<pair<pair<int, int>, long long>> Edge;
 };
@@ -61,13 +58,13 @@ public:
         for (int i = 0; i < num3; i++) {
             table.emplace_back(new Tuple(this, num1));
         }
-        this->name = std::move(name);
+        this->name = name;
         this->num1 = num1;
         this->num3 = num3;
     }
 };
 
-void InsertNewAttr(RG *now, const string& name, int type) {
+void InsertNewAttr(RG *now, string name, int type) {
     now -> num1++;
     now -> zero.push_back(name);
     now -> attr[name] = (now -> num1) - 1;
@@ -78,40 +75,63 @@ void InsertNewAttr(RG *now, const string& name, int type) {
     }
 }
 
-void outputRG(RG &a) {
+void outputRG(RG &a, string name = "") {
     int num1 = a.num1; // attr
     int num3 = a.num3; // tuple
-    cout << a.name << " addr:" << &a <<endl;
-    for (const auto& i:a.zero) {
-        cout << i << ' ';
-    }
-    cout << endl;
-    for (int i=0;i<num3;i++) {
-        cout<<"tupleAddr: "<<&(a.table[i])<<" ";
-        for(int j=0;j<num1;j++) {
-            if (a.attr_type[j] == 0){
-                cout << a.table[i]->attribute[j]->number << " ";
-            } else if(a.attr_type[j] == 1) {
-                cout << (a.table[i]->attribute[j]->str) << " ";
-            } else if(a.attr_type[j] == 2) {
-                cout << "Pointers to:" << ' ';
-                auto ps = static_cast<set<Tuple*>*>(a.table[i]->attribute[j]->pointerSet);
-                if (ps == nullptr) {
-                    cout<<" empty! ";
-                    continue;
-                }
-                for(auto item : (*ps)){
-                    cout << (item) << " ";
-                }
-
-            } else {
-                    cout << " Unknown attribute type! " ;
-            }
-
+    if(name == ""){
+        cout << a.name << " addr:" << &a <<endl;
+        for (auto i:a.zero) {
+            cout << i << ' ';
         }
-        cout << "  fatherTableAddr: " << a.table[i]->table;
         cout << endl;
+        for (int i=0;i<num3;i++) {
+            cout<<"tupleAddr: "<<&(a.table[i])<<" ";
+            for(int j=0;j<num1;j++) {
+                if (a.attr_type[j] == 0){
+                    cout << a.table[i]->attribute[j]->number << " ";
+                } else if(a.attr_type[j] == 1) {
+                    cout << (a.table[i]->attribute[j]->str) << " ";
+                } else if(a.attr_type[j] == 2) {
+                    cout << "Pointers to:" << ' ';
+                    auto ps = static_cast<set<Tuple*>*>(a.table[i]->attribute[j]->pointerSet);
+                    if (ps == nullptr) {
+                        cout<<" empty! ";
+                        continue;
+                    }
+                    for(auto i : (*ps)){
+                        cout<<(i)<<" ";
+                    }
+
+                } else {
+                    cout << " Unknown attribute type! " ;
+                }
+
+            }
+            cout << "  fatherTableAddr: " << a.table[i]->table;
+            cout << endl;
+        }
+    } else {
+        cout << name <<endl;
+        for (auto i:a.zero) {
+            cout << i << ' ';
+        }
+        cout << endl;
+        for (int i=0;i<num3;i++) {
+            for(int j=0;j<num1;j++) {
+                if (a.attr_type[j] == 0){
+                    cout << a.table[i]->attribute[j]->number << " ";
+                } else if(a.attr_type[j] == 1) {
+                    cout << (a.table[i]->attribute[j]->str) << " ";
+                } else if(a.attr_type[j] == 2) {
+                    cout << "Pointers" << ' ';
+                } else {
+                    cout << " Unknown attribute type! " ;
+                }
+            }
+            cout << endl;
+        }
     }
+
 }
 
 vector<RG> Rgs;
@@ -133,7 +153,6 @@ class Step{
 public:
     int S1{}, S2{}; // csg and cmp set
     vector<JoinCondition> conditions; // join condition
-    // vector<string> attr; // attr which should be contained
 };
 
 long long toNum(const char *value) {
@@ -151,7 +170,6 @@ long long toNum(const char *value) {
     return res * flag;
 }
 
-
 void updatePointer(Tuple *a, Tuple * ori) {
     for(auto &i:ori->pointerFrom) {
 
@@ -160,18 +178,14 @@ void updatePointer(Tuple *a, Tuple * ori) {
         }
         auto ps = static_cast<set<Tuple*>*>(i->pointerSet);
 
-        if(ps->erase(ori)){
-            // cout << "delete old pointer to " << ori <<endl;
-        }
+        ps->erase(ori);
         ps->insert(a);
-        // cout<<"insert new pointer to "<<a<<endl<<endl;
     }
-    cout<<endl;
 }
 
 Tuple::Tuple (void *fa, Tuple *aa, Tuple *bb) { // a+b
-    Tuple &a = *aa;
-    Tuple &b = *bb;
+    Tuple a = *aa;
+    Tuple b = *bb;
     table = fa;
     num1 = a.num1 + b.num1;
     attribute.resize(a.num1 + b.num1);
@@ -183,14 +197,9 @@ Tuple::Tuple (void *fa, Tuple *aa, Tuple *bb) { // a+b
     }
     pointerFrom.insert(a.pointerFrom.begin(), a.pointerFrom.end());
     pointerFrom.insert(b.pointerFrom.begin(), b.pointerFrom.end());
-    // cout<<endl<<endl;
-    // cout<<"update pointer from "<<&a <<" to " << this<<endl;
     updatePointer(this, &a);
-    // cout<<"update pointer from "<<&b <<" to " << this<<endl;
-    updatePointer(this, &b); // 不确定是否有bug！
-    // cout<<endl<<endl;
+    updatePointer(this, &b);
 }
-
 
 void updateFather(RG &t) {
     for(int i=0;i<t.num3;i++) {
@@ -223,8 +232,6 @@ namespace Init{
                     } else {
                         now.table[j]->attribute[k]->str = new char();
                         cin >> now.table[j]->attribute[k]->str;
-                        // use cin to deal with input for char* type may cause error!!!!!
-                        // already fixed at 23.12.1
                     }
                 }
             }
@@ -242,59 +249,18 @@ namespace Init{
             Graph now;
             cin >> now.N >> now.M;
             now.Node.resize(now.N);
-            // RG V(name + "V", 3, N);
-            // RG E_in(name + "E_in", 2, M);
-            // RG E_out(name + "E_out", 2, M);
-
-            // V.zero.push_back(V.name + ".id"), V.attr[V.name + ".id"] = 0, V.attr_type[0] = 0;
-            // V.zero.push_back(V.name + ".in"), V.attr[V.name + ".in"] = 1, V.attr_type[1] = 2;
-            // V.zero.push_back(V.name + ".out"), V.attr[V.name + ".out"] = 2, V.attr_type[2] = 2;
             for(int j = 0; j < now.N; j++) {
                 cin >> now.Node[j];
-                // V.table[j].attribute[0].number = id;
             }
-            // E_in.zero.push_back(E_in.name + ".id"), E_in.attr[E_in.name + ".id"] = 0, E_in.attr_type[0] = 0;
-            // E_in.zero.push_back(E_in.name + ".src"), E_in.attr[E_in.name + ".src"] = 1, E_in.attr_type[1] = 2;
-            // E_out.zero.push_back(E_out.name + ".id"), E_out.attr[E_out.name + ".id"] = 0, E_out.attr_type[0] = 0;
-            // E_out.zero.push_back(E_out.name + ".dst"), E_out.attr[E_out.name + ".dst"] = 1, E_out.attr_type[1] = 2;
             for(int j = 0; j < now.M; j++) {
                 int x, y;
                 long long id;
                 cin >> x >> y >> id;
                 x--;
                 y--;
-                now.Edge.emplace_back(make_pair(x, y), id);
-                // E_in.table[j].attribute[0].number = id;
-                // //void * tmp = E_in.table[j].attribute[1].pointerSet;
-
-                // if (E_in.table[j].attribute[1].pointerSet == nullptr) {
-                //     E_in.table[j].attribute[1].pointerSet = new set<Tuple*>;
-                // }
-                // ((set<Tuple*>*)(E_in.table[j].attribute[1].pointerSet))->insert(&(V.table[x]));
-                // V.table[x].pointerFrom.insert(&(E_in.table[j].attribute[1]));
-                // if (V.table[y].attribute[1].pointerSet == nullptr) {
-                //     V.table[y].attribute[1].pointerSet = new set<Tuple*>; // in
-                // }
-                // ((set<Tuple*>*)(V.table[y].attribute[1].pointerSet))->insert(&(E_in.table[j]));
-                // E_in.table[j].pointerFrom.insert(&(V.table[y].attribute[1]));
-
-                // E_out.table[j].attribute[0].number = id;
-
-                // if (E_out.table[j].attribute[1].pointerSet == nullptr) {
-                //     E_out.table[j].attribute[1].pointerSet = new set<Tuple*>;
-                // }
-                // ((set<Tuple*>*)(E_out.table[j].attribute[1].pointerSet))->insert(&(V.table[y]));
-                // V.table[y].pointerFrom.insert(&(E_out.table[j].attribute[1]));
-                // if (((set<Tuple*>*)(V.table[x].attribute[2].pointerSet)) == nullptr) {
-                //     V.table[x].attribute[2].pointerSet = new set<Tuple*>;
-                // }
-                // ((set<Tuple*>*)(V.table[x].attribute[2].pointerSet))->insert(&(E_out.table[j]));
-                // E_out.table[j].pointerFrom.insert(&(V.table[x].attribute[2]));
+                now.Edge.push_back(make_pair(make_pair(x, y), id));
             }
             Graphs.push_back(now);
-            // Table[V.name] = Rgs.size(), Rgs.emplace_back(std::move(V));
-            // Table[E_in.name] = Rgs.size(), Rgs.emplace_back(std::move(E_in));
-            // Table[E_out.name] = Rgs.size(), Rgs.emplace_back(std::move(E_out));
         }
     }
 
@@ -317,14 +283,13 @@ namespace Query{
     vector<vector<Edge> > G;
     vector<vector<int> > uG;
     vector<int> checkId;
-
+    vector<long long>Cardi;
     long long GetCost(Step now) {
-        return 0;
+        return Cardi[now.S1]*Cardi[now.S2]/(now.conditions.size()+1);
     }
 
     void BuildQueryGraph() {
         tot = 0, cnt = 0;
-        // RgtoId.clear(), IdtoRg.clear();
         int type;
         cin >> type;
         if(type == 1) {
@@ -358,16 +323,6 @@ namespace Query{
                 InsertNewAttr(tables[x], "V" + to_string(x) + "E" + to_string(i) + ".out", 2);
                 InsertNewAttr(tables[y], "V" + to_string(y) + "E" + to_string(i) + ".in", 2);
 
-                // tables[x] -> num1++, tables[y] -> num1++; 
-                // tables[x] -> zero.push_back();
-                // tables[x] -> attr["V" + to_string(x) + "E" + to_string(i) + ".out"] = (tables[x] -> num1) - 1;
-                // tables[x] -> attr_type[(tables[x] -> num1) - 1] = 2;
-
-                // tables[y] -> zero.push_back("V" + to_string(y) + "E" + to_string(i) + ".in");
-                // tables[y] -> attr["V" + to_string(y) + "E" + to_string(i) + ".in"] = (tables[y] -> num1) - 1;
-                // tables[y] -> attr_type[(tables[y] -> num1) - 1] = 2;
-
-                // cout << "xxx";
                 for(int j = 0; j < M; j++) {
                     int u = g.Edge[j].first.first;
                     int v = g.Edge[j].first.second;
@@ -384,7 +339,6 @@ namespace Query{
                     static_cast<set<Tuple*>*>((tables[y] -> table[v])->attribute.back()->pointerSet) -> insert(E_rev -> table[j]);
                     E_rev -> table[j]->pointerFrom.insert((tables[y] -> table[v])->attribute.back());
                 }
-                // cout << "xxx";
                 uG.emplace_back(), G.emplace_back();
                 tables.push_back(E_rev);
                 updateFather(*tables[tables.size()-1]);
@@ -393,8 +347,8 @@ namespace Query{
                 condition1.attr1 = "E_rev" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(y) + "E" + to_string(i) + ".in";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
-                G[y].emplace_back(tot, condition2);
-                G[tot].emplace_back(x, condition1);
+                G[y].push_back(Edge(tot, condition2));
+                G[tot].push_back(Edge(x, condition1));
                 tot++;
 
                 RG* E_ord = new RG("E_ord" + to_string(i), 2, M);
@@ -410,7 +364,6 @@ namespace Query{
                         E_ord -> table[j]->attribute[1]->pointerSet = new set<Tuple*>;
                     }
                     static_cast<set<Tuple*>*>(E_ord -> table[j]->attribute[1]->pointerSet)->insert(tables[y]->table[v]);
-//                    ((set<Tuple*>*)E_ord -> table[j]->attribute[1].pointerSet) -> insert((tables[y] -> table[v]));
                     (tables[y] -> table[v])->pointerFrom.insert(E_ord -> table[j]->attribute[1]);
                     if ((tables[x] -> table[u])->attribute.back()->pointerSet == nullptr) {
                         (tables[x] -> table[u])->attribute.back()->pointerSet = new set<Tuple*>;
@@ -423,12 +376,11 @@ namespace Query{
                 condition1.attr1 = "E_ord" + to_string(i) + ".dst";
                 condition2.attr1 = "V" + to_string(x) + "E" + to_string(i) + ".out";
                 uG[y].push_back(tot), uG[tot].push_back(y), uG[x].push_back(tot), uG[tot].push_back(x);
-                G[x].emplace_back(tot, condition2);
-                G[tot].emplace_back(y, condition1);
+                G[x].push_back(Edge(tot, condition2));
+                G[tot].push_back(Edge(y, condition1));
                 tot++;
             }
         }
-        // cout << "xxxx";
         int N;
         cin >> N;
         for(int i = 1; i <= N; i++) {
@@ -445,8 +397,6 @@ namespace Query{
                 TableId[tableName2] = tot++;
                 uG.emplace_back(), G.emplace_back(), tables.push_back(&Rgs[Table[tableName2]]), checkId.push_back(cnt++);
             }
-            // cout << tableName1 << ' ' << tableName2 << '\n';
-            // for(auto [name, id] : TableId) cout << name << ' ' << id << '\n';
             x = TableId[tableName1];
             y = TableId[tableName2];
             JoinCondition condition;
@@ -454,7 +404,7 @@ namespace Query{
             condition.attr2 = attr2;
             condition.cmp = cmp;
             uG[x].push_back(y), uG[y].push_back(x);
-            G[x].emplace_back(y, condition);
+            G[x].push_back(Edge(y, condition));
         }
     }
 
@@ -483,28 +433,18 @@ namespace Query{
         for(int t = S1; t; t ^= Min(t))  {
             int i = Id[Min(t)];
             for(auto [j, condition] : G[i]) if(S2 >> j & 1) {
-                if(S1 == 18 && S2 == 324) {
-                    cout << i << ' ' << j << condition.attr1 << ' ' << condition.attr2 << ' ' << condition.cmp << '\n';
-                }
                 res.conditions.push_back(condition);
             }
         }
         for(int t = S2; t; t ^= Min(t)) {
             int i = Id[Min(t)];
             for(auto [j, condition] : G[i]) if(S1 >> j & 1) {
-                if(S1 == 18 && S2 == 324) {
-                    cout << i << ' ' << j << condition.attr1 << ' ' << condition.attr2 << ' ' << condition.cmp << '\n';
-                }
                 JoinCondition condition1 = condition;
                 if(condition1.cmp == 2 || condition1.cmp == 3)
                     condition1.cmp = 5 - condition1.cmp;
                 swap(condition1.attr1, condition1.attr2);
                 res.conditions.push_back(condition1);
             }
-        }
-        if(S1 == 18 && S2 == 324) {
-            cout << S1 << ' ' << S2 << '\n';
-            for(const auto& o : res.conditions) cout << o.attr1 <<  " " << o.attr2 << ' ' << o.cmp << '\n';
         }
         return res;
     }
@@ -514,7 +454,7 @@ namespace Query{
         int Sta = S1 | S2;
         if(!Can[Sta]) return ;
         Step now = GetStep(S1, S2);
-
+        Cardi[Sta] = GetCost(now);
         if(Plan[Sta].S1 == 0 || Cost[Sta] > Cost[S1] + Cost[S2] + GetCost(now)) {
             Plan[Sta] = now;
         }
@@ -527,21 +467,21 @@ namespace Query{
     }
 
     void EnumerateCmpRec(int S1, int S2, int X) {
-        int NN = Neighbor(S2, X);
-        for(int s = NN; s ; s = (s - 1) & NN) {
+        int N = Neighbor(S2, X);
+        for(int s = N; s ; s = (s - 1) & N) {
             if(Plan[S2 | s].S1)
                 EmitCsgCmp(S1, S2 | s);
         }
-        X |= NN;
-        for(int s = NN; s ; s = (s - 1) & NN) {
+        X |= N;
+        for(int s = N; s ; s = (s - 1) & N) {
             EnumerateCmpRec(S1, S2 | s, X);
         }
     }
 
     void EmitCsg(int S1) {
         int X = S1 | B(Min(S1));
-        int NN = Neighbor(S1, X);
-        for(int i = tot - 1; i>= 0; i--) if(NN >> i & 1) {
+        int N = Neighbor(S1, X);
+        for(int i = tot - 1; i>= 0; i--) if(N >> i & 1) {
             int S2 = 1 << i;
             EmitCsgCmp(S1, S2);
             EnumerateCmpRec(S1, S2, X);
@@ -549,13 +489,13 @@ namespace Query{
     }
 
     void EnumerateCsgRec(int S1, int X) {
-        int NN = Neighbor(S1, X);
-        for(int s = NN; s ; s = (s - 1) & NN) {
+        int N = Neighbor(S1, X);
+        for(int s = N; s ; s = (s - 1) & N) {
             if(Plan[S1 | s].S1)
                 EmitCsg(S1 | s);
         }
 
-        for(int s = NN; s ; s = (s - 1) & NN)
+        for(int s = N; s ; s = (s - 1) & N)
             EnumerateCsgRec(S1 | s, X | Neighbor(S1, X));
     }
 
@@ -563,6 +503,7 @@ namespace Query{
         int sta = (1 << tot);
         best = -1;
         Cost.clear(), Cost.resize(sta);
+        Cardi.clear(), Cardi.resize(sta);
         Plan.clear(), Plan.resize(sta);
         N.clear(), N.resize(sta);
         Can.clear(), Can.resize(sta);
@@ -575,12 +516,14 @@ namespace Query{
         }
 
         for(int i = 0; i < tot; i++) {
+            Cardi[1<<i] = tables[i]->num3;
+//            cout<<"";
             Id[1 << i] = i, Plan[1 << i].S1 = 1 << i;
             for(auto edge : uG[i]) N[1 << i] |= 1 << edge;
             // , cout << edge << ' ';
             // cout << N[1 << i] << '\n';
         }
-        cout << '\n';
+//        cout << '\n';
         for(int s = 1; s < sta; s++) {
             N[s] = N[s  ^ (s & -s)] | N[s & -s];
         }
@@ -589,37 +532,6 @@ namespace Query{
             EnumerateCsgRec(1 << i , B(1 << i));
         }
     }
-/*
-2
-table1
-2 3
-id 0
-name 1
-1 Name
-2 Name1
-3 345
-table2
-2 3
-id 0
-name 1
-321 Name
-213 Name1
-3 3456
-
-1
-graph1
-3 2
-1 2 3
-1 2 0
-2 3 1
-
-1
-graph1 2 1
-0 1
-1
-table1.id V0.id 3
-table1.name
-*/
     void Query() {
         BuildQueryGraph();
         GetPlan();
@@ -628,37 +540,7 @@ table1.name
 };
 
 namespace Exert{
-    int sampleCnt = 0;
-    RG* Sampling(RG &R, double ratio) {
-        srand(time(0));
-        sampleCnt++;
-        int maxNum = R.num3;
-        int num3 = static_cast<int>(ceil(maxNum * ratio));
-        auto res = new RG("Sample"+ to_string(sampleCnt), R.num1, 0);
-        set<int>vis = {};
-        int num = -1;// num is the random number;
-        res->num3 = num3;
-        while(num3) {
-            // generate random
-            num = static_cast<int>(fabs(rand()*rand())) % maxNum;
-            // check validity
-            if(vis.count(num)!=0) {
-                continue;
-            }
-            vis.insert(num);
-            Tuple* tmpSample = new Tuple(*R.table[num]);
-            res->table.emplace_back(tmpSample);
-            num3--;
-            cout << "Sampling: get " << R.table[num] << " copy to Addr: " << &tmpSample <<endl;
-        }
-        // Bugs: deep copy construct
-
-        // todo: Implement deep copy of Attr/Tuple
-        return res;
-    }
-
     RG* Projection(RG &R, vector<string> attrs1) { // if const R, can't access the R.attr[]
-        // attrs include the RGName!!!!!!!!!!!!!! f**k...
         vector<string> attrs;
         int temp = R.num1;
         int temp1 = attrs1.size();
@@ -696,10 +578,6 @@ namespace Exert{
             for (int j = 0; j < num1; j++) {
                 (*tmpTuple).attribute[j] = R.table[i]->attribute[selected_attr[j]];
             }
-            // if(res->name == "__tmpTable4") {
-                // cout<< "stop here"<<endl;
-            // }
-            // cout<<"Projection::update pointer from "<<&R.table[i] <<" to " << tmpTuple<<endl;
             updatePointer(tmpTuple,R.table[i]);
             res->table[i] = tmpTuple;
         }
@@ -828,7 +706,6 @@ namespace Exert{
                 num3++;
                 auto tmpTuple = R.table[i]; // remained bugable!
                 tmpTuple->table = res;
-                cout<<"Selection::update pointer from "<<&R.table[i] <<" to " << &tmpTuple <<endl;
                 updatePointer(tmpTuple, R.table[i]);
                 (res->table).push_back(tmpTuple); // beware bugs of copy construction ?
             }
@@ -837,8 +714,6 @@ namespace Exert{
         return res;
     }
     RG* RGJoin(RG &a, RG &b, vector<JoinCondition> &conditions) { // simple n^2 join, slow but right
-        // outputRG(a), cout << "xxxxx",outputRG(b), cout << "xxxxx\n";
-        // for(auto o : conditions) cout << o.attr1 << ' ' << o.attr2 << ' ' << o.cmp << '\n';
         tmpTableCnt++;
         string name = "__tmpTable" + to_string(tmpTableCnt);
         int tot = 0;
@@ -876,11 +751,6 @@ namespace Exert{
                     }catch (...){
                         lineNo2 = -1;
                     }
-                    // cout << "a.table[i] addr" << &a.table[i] << " b: " << &b.table[j]<<endl;
-                    // cout << "Join CMP:" << a.name <<" "<< b.name <<endl;
-                    // if (a.name == "__tmpTable2"){
-                        // cout<<"";
-                    // }
                     if (condition.attr1.empty() && condition.cmp == 4){
                         if (!CMP(condition, b.table[j], a.table[i], lineNo2, lineNo1)) {
                             flag = 0;
@@ -899,48 +769,28 @@ namespace Exert{
                 if (flag) {
                     assert(res->attr.size()==a.num1+b.num1);
                     auto tmpTuple = new Tuple(res, a.table[i], b.table[j]);
-                    //updatePointer(tmpTuple, &a.table[i]);
-                    //updatePointer(tmpTuple, &b.table[j]);
                     res->table.emplace_back(tmpTuple);
-                    //auto test = static_cast<set<Tuple*>*>(tmpTuple->attribute[2].pointerSet);
                     tot++;
                 }
             }
         }
 
         res->num3 = tot;
-        cout<<endl<<"Before join return"<<endl;
-        outputRG(*res);
-        cout<<endl;
         return res;
     }
 };
 
 RG *Selectcolumn(RG &a, vector<string> b) {
-    RG* result = Exert::Projection(a, std::move(b));
+    RG* result = Exert::Projection(a, b);
     return result;
 }
 
 RG *Do(RG *a, RG *b, vector<JoinCondition> c, vector<string> d) {
-    if (a->name=="__tmpTable2") {
-        cout <<" Critical step!"<<endl;
-        outputRG(*a);
-        cout<<endl;
-        outputRG(*b);
-        cout<<endl;
-    }
     RG* temp = Exert::RGJoin(*a, *b, c);
-    // here tmp2 should change pointer for the first time
-    cout<<"Before projection"<<endl;
-    outputRG(*temp);
-    RG *result = Selectcolumn(*temp, std::move(d));//给它一个表，还有一些要保留的列的名字，生成一个新表，怎么去实现？
-    // here tmp2 should be changed again
-    outputRG(*result);
-    cout<<endl<<endl;
+    RG *result = Selectcolumn(*temp, d);
     return result;
 }
 
-//从这儿开始改
 RG *Calc(int S, vector<string> attr) {
 
     /*class Step{
@@ -952,7 +802,6 @@ RG *Calc(int S, vector<string> attr) {
 
     if((S & (S - 1)) == 0) {//如果S是一个二进制数，就是简单的那个表
         int temp = log2(S);
-        // temp--;
         return (Query::tables[temp]);
     }
     else {
@@ -962,14 +811,11 @@ RG *Calc(int S, vector<string> attr) {
         int S1 = now.S1, S2 = now.S2;
         vector<JoinCondition> condition = now.conditions;
         int num = condition.size();
-        //vector<string> attr = now.attr;新改的
         vector<string> attr1;
         attr1 = attr;
-//        int num1 = attr1.size();
 
         vector<string> attr2;
         attr2 = attr;
-//        int num2 = attr2.size();
 
         for (int i =0;i<num;i++) {
             string str1 = condition[i].attr1;
@@ -977,12 +823,6 @@ RG *Calc(int S, vector<string> attr) {
             attr1.emplace_back(str1);
             attr2.emplace_back(str2);
         }
-        cout << S << '\n';
-        for(const auto& o : now.conditions) {
-            cout << o.attr1 << ' ' << o.attr2 << ' ' << o.cmp << '\n';
-        }
-        for(const auto& o : attr) cout << o << ' ';
-        cout << '\n';
 
         RG *s1 = Calc(S1, attr1);
         RG *s2 = Calc(S2, attr2);
@@ -990,165 +830,26 @@ RG *Calc(int S, vector<string> attr) {
 
         RG *res = Do(s1, s2, condition, attr);
         return res;
-//        return Do(Calc(S1, attr1), Calc(S2, attr2), condition, attr);
-        // return RG(); // for temporary debug
     }
 }
-
-void Output(RG a) {//对一个表进行输出
-    int num1 = a.num1; // attr
-    //int num2 = a.num2; // pointer
-    int num3 = a.num3; // tuple
-
-    // 打开文件以进行写操作，如果文件不存在则创建，如果存在则覆盖
-    ofstream outputFile("result.txt");
-
-    // 重定向标准输出流到文件
-    streambuf *coutbuf = cout.rdbuf(); // 保存原始的 cout 缓冲区指针
-    cout.rdbuf(outputFile.rdbuf()); // 重定向 cout 到文件
-
-    // 输出到控制台和文件
-    cout << a.name << " addr:" << &a <<endl;
-    for (const auto& i : a.zero) {
-        cout << i << ' ';
-    }
-    cout << endl;
-    for (int i=0;i<num3;i++) {
-        for(int j=0;j<num1;j++) {
-            if (a.attr_type[j] == 0){
-                cout << a.table[i]->attribute[j]->number << " ";
-            } else if(a.attr_type[j] == 1) {
-                cout << (a.table[i]->attribute[j]->str) << " ";
-            } else if(a.attr_type[j] == 2) {
-                cout << "Pointers" << ' ';
-            } else {
-                cout << " Unknown attribute type! " ;
-            }
-
-        }
-        cout << "  fatherTableAddr: " << a.table[i]->table;
-        cout << endl;
-    }
-
-    // 恢复标准输出流
-    cout.rdbuf(coutbuf);
-
-    // 关闭文件
-    outputFile.close();
-}
-
-namespace Debug {
-    void testUpdatePointer() {
-        RG *test = new RG("testRG", 123, 1);
-        auto *a = new Tuple(test, 2);
-        a->attribute[0]->number = 123;
-        auto *b = new Tuple(test, 2);
-        b->attribute[0]->number = 234;
-        auto *c = new Tuple(test, 2);
-        (a->attribute[1]->pointerSet) = new set<Tuple*>();
-        auto ss = ((set<Tuple*>*)(a->attribute[1]->pointerSet));
-        cout << b<<endl;
-        ss->insert(b); // 1:out
-        b->pointerFrom.insert((Attr*)&(a->attribute[1]));
-        updatePointer(c,b);
-        cout<<"AtoC? :" <<((set<Tuple*>*)(a->attribute[1]->pointerSet))->count(c)<<endl;
-    }
-   
-    void testExert(){
-        vector<string>ProjectAttrs;
-        ProjectAttrs.emplace_back("table1.name");// means "name"
-        ProjectAttrs.emplace_back("table1.id");// means "id"
-        /*test examples
-        2
-        table1
-        2 3
-        id 0
-        name 1
-        1 Name
-        2 Name1
-        3 345
-        table2
-        2 3
-        id 0
-        name 1
-        321 Name
-        213 Name1
-        3 3456
-
-        1
-        graph1
-        3 2
-        1 2 3
-        0 1 0
-        1 2 1
-        */
-        //vector<string>ProjectPointers;
-        RG *test = Exert ::Projection(Rgs[0], ProjectAttrs);
-        outputRG(*test);
-
-        cout<<endl<<endl;
-
-
-        vector<SelCondition>SelectionCon;
-        SelCondition a{};// .name == "Name1"
-        a.attr = "table1.name"; // name
-        a.value = "Name1";
-        a.cmp = 0;
-        SelectionCon.push_back(a);
-        RG *testSel = Exert::Selection(Rgs[0], SelectionCon);
-
-        outputRG(*testSel);
-        cout<<endl<<endl;
-        RG *testMix = Exert::Projection(*testSel, ProjectAttrs);
-        outputRG(*testMix);
-        cout<<endl<<endl;
-
-        vector<JoinCondition> JoinConditions;
-        JoinCondition jc = {"table1.name", "table2.name", 0}; // name equal
-        JoinConditions.push_back(jc);
-        RG *testJoin1 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
-        outputRG(*testJoin1);
-        cout<<endl<<endl;
-
-
-        JoinConditions.clear();
-        JoinConditions.push_back({"table1.id","table2.id",3}); // A.id >= B.id
-        RG *testJoin2 = Exert::RGJoin(Rgs[0],Rgs[1],JoinConditions);
-        outputRG(*testJoin2);
-        cout<<endl<<endl;
-    }
-};
 
 int main() {
     Init :: Init();
     Query :: Query();
-//    outputRG(*Exert::Sampling(Rgs[0],0.5));
-//    outputRG(*Query::tables[Query::TableId["V0"]]);
-//    cout<<endl<<endl;
-//    outputRG(*Query::tables[Query::TableId["E_ord0"]]);
-//    cout<<endl<<endl;
-//    outputRG(*Query::tables[Query::TableId["E_rev0"]]);
-//    cout<<endl<<endl;
-    cout << Query :: best << '\n';
-    vector<string> readattr;
-    readattr.emplace_back("V0.id");
-    readattr.emplace_back("V1.id");
-    readattr.emplace_back("V2.id");
-    readattr.emplace_back("table1.name");
 
+    vector<string> readattr;
     getchar();
     string input;
-    getline(cin, input);  // 从控制台读入一行输入
+    getline(cin, input);
     istringstream iss(input);
     string token;
     while (getline(iss, token, ' ')) {
-        readattr.push_back(token);  // 将分割后的字符串放入 readattr 中
+        readattr.push_back(token);
     }
+    cout<<endl;
 
-    RG *result = Calc(Query::best, readattr);//我从这儿开始改
-    outputRG(*result);
-    //  Output(*result);
-
+    RG *result = Calc(Query::best, readattr);
+    outputRG(*result,"Final Output Table");
     return 0;
 }
 /*
@@ -1189,4 +890,5 @@ graph1
 1
 table1.id V0.id 1
 V0.id V1.id V2.id
+
  */
