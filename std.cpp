@@ -21,26 +21,9 @@ public:
     vector<Attr*> attribute;
     set<Attr*> pointerFrom;
 
-    explicit Tuple (void* fa, int num1 = 0) {
-        table = fa;
-//        attribute.resize(num1);
-        for (int i = 0; i < num1; i++) {
-            attribute.emplace_back(new Attr());
-        }
-        pointerFrom.clear();
-        this->num1 = num1;
-    }
+    explicit Tuple (void* fa, int num1) ;
     Tuple (void *fa, Tuple *a, Tuple *b);
 };
-
-class Graph{
-public:
-    int N, M;
-    vector<long long> Node;
-    vector<pair<pair<int, int>, long long>> Edge;
-};
-
-vector<Graph> Graphs;
 
 class RG{
 public:
@@ -51,18 +34,38 @@ public:
     vector<string>zero; // first row: attr name and pointer name;
     map <string, int> attr; // name -> line no.
     map <int, int> attr_type; // line no. -> 0/1 0:long long, 1:str
-    explicit RG (string name = "EmptyName", int num1 = 0,  int num3 = 0) {
-        //table.resize(num3);
-        attr.clear();
-        zero.clear();
-        for (int i = 0; i < num3; i++) {
-            table.emplace_back(new Tuple(this, num1));
-        }
-        this->name = name;
-        this->num1 = num1;
-        this->num3 = num3;
-    }
+    explicit RG (string name = "EmptyName", int num1 = 0,  int num3 = 0);
 };
+
+Tuple::Tuple(void *fa, int num1 = 0){
+    table = fa;
+//        attribute.resize(num1);
+    for (int i = 0; i < num1; i++) {
+        attribute.emplace_back(new Attr());
+    }
+    pointerFrom.clear();
+    this->num1 = num1;
+}
+
+RG::RG (string name, int num1, int num3) {
+    attr.clear();
+    zero.clear();
+    for (int i = 0; i < num3; i++) {
+    table.emplace_back(new Tuple(this, num1));
+    }
+    this->name = name;
+    this->num1 = num1;
+    this->num3 = num3;
+}
+
+class Graph{
+public:
+    int N, M;
+    vector<long long> Node;
+    vector<pair<pair<int, int>, long long>> Edge;
+};
+
+vector<Graph> Graphs;
 
 void InsertNewAttr(RG *now, string name, int type) {
     now -> num1++;
@@ -75,7 +78,7 @@ void InsertNewAttr(RG *now, string name, int type) {
     }
 }
 
-void outputRG(RG &a, string name = "") {
+void outputRG(RG &a, const string& name = "") {
     int num1 = a.num1; // attr
     int num3 = a.num3; // tuple
     if(name == ""){
@@ -285,7 +288,7 @@ namespace Query{
     vector<int> checkId;
     vector<long long>Cardi;
     long long GetCost(Step now) {
-        return Cardi[now.S1]*Cardi[now.S2]/(now.conditions.size()+1);
+        return Cardi[now.S1]*Cardi[now.S2]*now.conditions.size();
     }
 
     void BuildQueryGraph() {
@@ -454,7 +457,7 @@ namespace Query{
         int Sta = S1 | S2;
         if(!Can[Sta]) return ;
         Step now = GetStep(S1, S2);
-        Cardi[Sta] = GetCost(now);
+        Cardi[Sta] = Cardi[now.S1]*Cardi[now.S2]/(now.conditions.size()+1);
         if(Plan[Sta].S1 == 0 || Cost[Sta] > Cost[S1] + Cost[S2] + GetCost(now)) {
             Plan[Sta] = now;
         }
